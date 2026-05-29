@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell($d = Get-Command docker -ErrorAction SilentlyContinue; if \\($d\\) { Write-Output \"DOCKER FOUND: $\\($d.Source\\)\"; docker --version } else { Write-Output \"DOCKER NOT INSTALLED\" })",
+      "Bash(pnpm lint *)",
+      "Bash(echo \"=== EXIT: $? ===\")",
+      "Bash(pnpm format:check)",
+      "Bash(pnpm format *)",
+      "Bash(curl -s \"https://api.jolpi.ca/ergast/f1/current/?format=json&limit=2\")",
+      "Bash(python -m json.tool)",
+      "Bash(curl -s \"https://api.jolpi.ca/ergast/f1/current/driverStandings/?format=json&limit=2\")",
+      "Bash(curl -s \"https://api.jolpi.ca/ergast/f1/current/1/results/?format=json&limit=1\")",
+      "Bash(curl -s \"https://api.jolpi.ca/ergast/f1/current/1/qualifying/?format=json&limit=2\")",
+      "Bash(pnpm exec *)",
+      "PowerShell($d = Get-Command docker -ErrorAction SilentlyContinue; if \\($d\\) { Write-Output \"DOCKER: $\\($d.Source\\)\"; docker ps --format \"{{.Names}}: {{.Status}}\" } else { Write-Output \"DOCKER NOT INSTALLED YET\" })"
+    ]
+  }
+}

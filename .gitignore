@@ -1,0 +1,39 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build output
+.next/
+out/
+dist/
+build/
+
+# Prisma generated client
+apps/server/src/generated/
+**/generated/prisma/
+
+# Env files (never commit secrets) — keep .env.example
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# Testing / cache
+coverage/
+.turbo/
+*.tsbuildinfo
+
+# Docker volumes (if mounted locally)
+.docker-data/

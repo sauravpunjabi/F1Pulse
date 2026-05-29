@@ -1,0 +1,260 @@
+// F1Pulse — Prisma schema
+//
+// Normalised model of all Formula 1 history (1950 → present), shaped to the real
+// Jolpica/Ergast JSON (inspected before modeling — see CLAUDE.md HARD RULE #4).
+//
+// Standings are stored as PER-ROUND SNAPSHOTS keyed by (seasonYear, round): the
+// state of the championship AFTER each round. This makes season-long progression
+// directly queryable — essential for the comparison + history features.
+//
+// Natural keys from Ergast (driverId, constructorId, circuitId) are used as primary
+// keys; they are stable and human-readable. No race data is ever hardcoded — every
+// row here is ingested server-side (see CLAUDE.md).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Core entities
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// A championship year (e.g. 2026). Year is the natural key.
+model Season {
+  year         Int      @id
+  wikipediaUrl String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  races                Race[]
+  driverStandings      DriverStanding[]
+  constructorStandings ConstructorStanding[]
+}
+
+/// A racing venue. Reused across seasons.
+model Circuit {
+  circuitId    String   @id // Ergast circuitId, e.g. "albert_park"
+  name         String // Ergast circuitName
+  locality     String?
+  country      String?
+  lat          Float?
+  long         Float?
+  wikipediaUrl String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  races Race[]
+}
+
+/// A driver. driverId (e.g. "russell") is stable across their whole career.
+model Driver {
+  driverId        String    @id
+  givenName       String
+  familyName      String
+  code            String? // 3-letter TLA, e.g. "RUS" — absent for some historic drivers
+  permanentNumber Int? // absent for many pre-2014 drivers
+  nationality     String?
+  dateOfBirth     DateTime? @db.Date
+  wikipediaUrl    String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  results           RaceResult[]
+  qualifyingResults QualifyingResult[]
+  driverStandings   DriverStanding[]
+}
+
+/// A constructor / team. constructorId (e.g. "mercedes") is stable across seasons.
+model Constructor {
+  constructorId String   @id
+  name          String
+  nationality   String?
+  wikipediaUrl  String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  results              RaceResult[]
+  qualifyingResults    QualifyingResult[]
+  constructorStandings ConstructorStanding[]
+  // A driver's constructor(s) within a per-round standing snapshot (lossless m2m
+  // for rare mid-season team switches). Implicit join table.
+  driverStandings      DriverStanding[]
+}
+
+/// A single Grand Prix weekend within a season.
+/// Surrogate id keeps child FKs simple; (seasonYear, round) is the natural unique key.
+model Race {
+  id           String   @id @default(cuid())
+  seasonYear   Int
+  round        Int
+  name         String // Ergast raceName, e.g. "Australian Grand Prix"
+  date         DateTime // race start (UTC; date + time when time is provided)
+  wikipediaUrl String?
+
+  // Session schedule (UTC). All optional — varies by era and sprint format.
+  fp1At              DateTime?
+  fp2At              DateTime?
+  fp3At              DateTime?
+  qualifyingAt       DateTime?
+  sprintQualifyingAt DateTime?
+  sprintAt           DateTime?
+  isSprintWeekend    Boolean   @default(false)
+
+  circuitId String
+  circuit   Circuit @relation(fields: [circuitId], references: [circuitId])
+  season    Season  @relation(fields: [seasonYear], references: [year])
+
+  results           RaceResult[]
+  qualifyingResults QualifyingResult[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([seasonYear, round])
+  @@index([seasonYear])
+  @@index([circuitId])
+  @@index([date])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Results
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// One driver's race result in a Grand Prix.
+model RaceResult {
+  id            String @id @default(cuid())
+  raceId        String
+  driverId      String
+  constructorId String
+
+  number       Int? // car number
+  position     Int // numeric classification order
+  positionText String // canonical: a number, or "R"/"D"/"E"/"W"/"F"/"N"
+  points       Float
+  grid         Int // 0 = pit lane start
+  laps         Int
+  status       String // e.g. "Finished", "+1 Lap", "Accident", "Engine"
+
+  // Race time (winner = full time; others = gap). Absent for non-finishers.
+  timeMillis Int?
+  timeText   String?
+
+  // Fastest lap (optional — not present for every result).
+  fastestLapRank     Int?
+  fastestLapNumber   Int?
+  fastestLapTime     String?
+  fastestLapSpeedKph Float?
+
+  race        Race        @relation(fields: [raceId], references: [id], onDelete: Cascade)
+  driver      Driver      @relation(fields: [driverId], references: [driverId])
+  constructor Constructor @relation(fields: [constructorId], references: [constructorId])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([raceId, driverId])
+  @@index([driverId])
+  @@index([constructorId])
+  @@index([raceId])
+}
+
+/// One driver's qualifying result in a Grand Prix.
+model QualifyingResult {
+  id            String @id @default(cuid())
+  raceId        String
+  driverId      String
+  constructorId String
+
+  number   Int?
+  position Int
+  q1       String? // lap time strings; later segments absent if knocked out earlier
+  q2       String?
+  q3       String?
+
+  race        Race        @relation(fields: [raceId], references: [id], onDelete: Cascade)
+  driver      Driver      @relation(fields: [driverId], references: [driverId])
+  constructor Constructor @relation(fields: [constructorId], references: [constructorId])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([raceId, driverId])
+  @@index([driverId])
+  @@index([raceId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Standings — per-round snapshots (championship progression)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Driver championship state AFTER a given round. One row per (season, round, driver).
+model DriverStanding {
+  id         String @id @default(cuid())
+  seasonYear Int
+  round      Int // snapshot point: standings as of the end of this round
+  driverId   String
+
+  position     Int
+  positionText String
+  points       Float
+  wins         Int
+
+  season       Season        @relation(fields: [seasonYear], references: [year])
+  driver       Driver        @relation(fields: [driverId], references: [driverId])
+  // Constructor(s) the driver was credited to at this snapshot (usually one).
+  constructors Constructor[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([seasonYear, round, driverId])
+  @@index([seasonYear, round])
+  @@index([driverId])
+}
+
+/// Constructor championship state AFTER a given round. One row per (season, round, constructor).
+model ConstructorStanding {
+  id            String @id @default(cuid())
+  seasonYear    Int
+  round         Int
+  constructorId String
+
+  position     Int
+  positionText String
+  points       Float
+  wins         Int
+
+  season      Season      @relation(fields: [seasonYear], references: [year])
+  constructor Constructor @relation(fields: [constructorId], references: [constructorId])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([seasonYear, round, constructorId])
+  @@index([seasonYear, round])
+  @@index([constructorId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Infrastructure
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Records each server-side ingestion run (source, scope, outcome).
+/// Pure pipeline bookkeeping — contains no Formula 1 result data.
+model IngestRun {
+  id          String    @id @default(cuid())
+  source      String // "jolpica" | "openf1"
+  scope       String // e.g. "current/driverStandings"
+  status      String    @default("pending") // pending | success | failed
+  recordCount Int       @default(0)
+  error       String?
+  startedAt   DateTime  @default(now())
+  finishedAt  DateTime?
+
+  @@index([source, scope])
+}
