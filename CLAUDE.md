@@ -97,14 +97,29 @@ F1Pulse/
 │     ├─ prisma/schema.prisma   normalized F1 domain (see Schema below) + IngestRun
 │     └─ src/
 │        ├─ config/env.ts        typed env (all 3rd-party URLs/keys live here)
-│        ├─ lib/prisma.ts        shared PrismaClient singleton
-│        ├─ lib/redis.ts         shared ioredis (lazyConnect; cache + BullMQ)
-│        ├─ lib/queue.ts         BullMQ connection + queue factory
+│        ├─ lib/{prisma,redis,queue}.ts   shared clients (PrismaClient, ioredis, BullMQ)
+│        ├─ clients/jolpica.ts   server-only Jolpica client (serial+throttle+retry, BULK season endpoints)
+│        ├─ ingest/ergast-types.ts  raw Ergast response types
+│        ├─ ingest/parse.ts      tolerant raw→typed converters
+│        ├─ ingest/fetch-season.ts  fetch a season into a SeasonBundle (bulk endpoints)
+│        ├─ ingest/persist.ts    BATCHED writes (createMany + chunked txns; deleteMany→createMany idempotency)
+│        ├─ ingest/ingest.ts     orchestration: ingestSeason / ingestCurrentSeason
+│        ├─ ingest/history.ts    resumable 1950→ backfill (skips successful seasons via IngestRun)
+│        ├─ cli/{ingest-current,ingest-history,verify-current,verify-history,data-integrity}.ts
 │        └─ index.ts             Express bootstrap + /health
 ├─ docker-compose.yml            local Postgres 16 + Redis 7
 ├─ tsconfig.base.json            shared strict TS
 └─ pnpm-workspace.yaml
 ```
+
+### Ingestion pipeline (`apps/server`)
+
+`fetch-season` (bulk Jolpica calls → in-memory `SeasonBundle`) → `persist` (batched, idempotent
+writes). NEVER per-row upserts. Standings have no bulk endpoint: default stores only the FINAL
+snapshot per season; `--progression` fetches per-round (heavier). Scripts: `pnpm ingest:current`,
+`pnpm ingest:history --from 1950 --to <last>` (resumable, `--progression`/`--qualifying`/`--force`),
+`pnpm verify:current`, `pnpm verify:history`, `pnpm data:integrity`. Jolpica latency ≈ 2s/call
+(no rate-limit errors observed) → use bulk endpoints; the wall is latency, not a request cap.
 
 ### Database schema (`apps/server/prisma/schema.prisma`)
 
@@ -116,17 +131,20 @@ Normalised to the real Ergast JSON. Natural string keys are primary keys.
 - **Constructor** (`constructorId` PK): name, nationality
 - **Race** (surrogate `id`, unique `[seasonYear, round]`): name, date, session times
   (fp1–3/qualifying/sprint/sprintQualifying), `isSprintWeekend`, → Circuit, Season
-- **RaceResult** (unique `[raceId, driverId]`): position/positionText, points, grid, laps, status,
-  time, fastest lap → Race/Driver/Constructor
+- **RaceResult** (**not** unique on `[raceId, driverId]`): position/positionText, points, grid,
+  laps, status, time, fastest lap → Race/Driver/Constructor. NOT unique because of **shared drives**
+  (1950s Indy 500 etc.) — a driver can have multiple results in one race. Idempotency is enforced by
+  the persist layer (`deleteMany(raceId) → createMany`), not a constraint.
 - **QualifyingResult** (unique `[raceId, driverId]`): position, q1/q2/q3
 - **DriverStanding** / **ConstructorStanding** — **PER-ROUND SNAPSHOTS**, unique
   `[seasonYear, round, (driver|constructor)Id]`, indexed `[seasonYear, round]`. This is what makes
-  championship **progression over a season** queryable. DriverStanding↔Constructor is m2m (lossless
-  for mid-season team changes).
+  championship **progression over a season** queryable. **DriverStanding↔Constructor is an explicit
+  join model** (`DriverStandingConstructor`, lossless for mid-season team changes) — explicit so the
+  join rows can be bulk-inserted via `createMany`.
 
 Key facts learned from live JSON: `positionText` is canonical (can be `R`/`D`/…); points are
 fractional (half-points) → `Float`; standings carry a Constructors **array**; results/qualifying
-have many optional fields. Migration: `prisma migrate dev --name init_f1_schema` (needs Postgres up).
+have many optional fields. Schema is applied to Neon via `prisma db push` (no `migrations/` folder).
 
 ### F1Pulse's own API (planned, served from `apps/server`)
 
@@ -172,3 +190,17 @@ build, not the calendar. Polish is where the bar is earned.
   matches the live API exactly. All upserts → re-running is safe. **Note:** the run took ~11 min
   because every upsert is a sequential round-trip to remote Neon; batch into transactions / reduce
   round-trips before the full-history backfill day.
+- **Day 4 — Batching + full history.** (1) **Perf fix:** rewrote the ingest layer to batched writes
+  (`persist.ts`: `createMany` + chunked `$transaction`s, per-round `deleteMany→createMany`) and bulk
+  season endpoints (`fetchSeasonResults`/`fetchSeasonQualifying`). `ingest:current` **682 s → 80 s
+  (8.5×)**, identical counts, still idempotent. Converted DriverStanding↔Constructor to an explicit
+  join model so join rows bulk-insert. (2) **History:** `pnpm ingest:history --from 1950 --to 2025`
+  — resumable (IngestRun per season), graceful gaps, default = results + final standings.
+  **Ran live:** all 76 seasons 1950–2025, **0 failed, 0 data gaps**, ~67 min (Jolpica ~2s/call).
+  (3) **Integrity report** `pnpm data:integrity`: 1154/1154 completed races have results; only
+  expected absence is constructor standings 1950–57 (championship began 1958). (4) **Verified from
+  DB:** 1950 champion = Farina (Alfa Romeo); Senna 41 wins; Ferrari 16 constructors' titles;
+  Schumacher 2004 = 148 pts/13 wins — all historically exact. **Bug found+fixed:** dropped
+  `RaceResult @@unique([raceId, driverId])` — shared drives (1950s Indy 500) give a driver multiple
+  results in one race. Per-round historical _progression_ not yet ingested (run `--progression`,
+  ~hours, for it).

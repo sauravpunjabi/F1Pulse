@@ -81,9 +81,9 @@ model Constructor {
   results              RaceResult[]
   qualifyingResults    QualifyingResult[]
   constructorStandings ConstructorStanding[]
-  // A driver's constructor(s) within a per-round standing snapshot (lossless m2m
-  // for rare mid-season team switches). Implicit join table.
-  driverStandings      DriverStanding[]
+  // A driver's constructor(s) within a per-round standing snapshot (lossless link
+  // for rare mid-season team switches), via the explicit join model below.
+  driverStandingLinks  DriverStandingConstructor[]
 }
 
 /// A single Grand Prix weekend within a season.
@@ -157,10 +157,12 @@ model RaceResult {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@unique([raceId, driverId])
-  @@index([driverId])
+  // NOT unique on [raceId, driverId]: historically a driver could have MULTIPLE
+  // results in one race (shared drives / car swaps, e.g. the 1950s Indianapolis
+  // 500). Idempotency is handled by the persist layer (deleteMany(raceId) →
+  // createMany), not by a unique constraint.
+  @@index([raceId, driverId])
   @@index([constructorId])
-  @@index([raceId])
 }
 
 /// One driver's qualifying result in a Grand Prix.
@@ -204,10 +206,11 @@ model DriverStanding {
   points       Float
   wins         Int
 
-  season       Season        @relation(fields: [seasonYear], references: [year])
-  driver       Driver        @relation(fields: [driverId], references: [driverId])
-  // Constructor(s) the driver was credited to at this snapshot (usually one).
-  constructors Constructor[]
+  season           Season                      @relation(fields: [seasonYear], references: [year])
+  driver           Driver                      @relation(fields: [driverId], references: [driverId])
+  // Constructor(s) the driver was credited to at this snapshot (usually one),
+  // via an explicit join model so the join rows can be bulk-inserted (createMany).
+  constructorLinks DriverStandingConstructor[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -215,6 +218,19 @@ model DriverStanding {
   @@unique([seasonYear, round, driverId])
   @@index([seasonYear, round])
   @@index([driverId])
+}
+
+/// Explicit join: which constructor(s) a driver was credited to in a standing
+/// snapshot. Replaces an implicit m2m so writes can be batched with createMany.
+model DriverStandingConstructor {
+  driverStandingId String
+  constructorId    String
+
+  driverStanding DriverStanding @relation(fields: [driverStandingId], references: [id], onDelete: Cascade)
+  constructor    Constructor    @relation(fields: [constructorId], references: [constructorId])
+
+  @@id([driverStandingId, constructorId])
+  @@index([constructorId])
 }
 
 /// Constructor championship state AFTER a given round. One row per (season, round, constructor).

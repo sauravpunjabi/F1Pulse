@@ -15,7 +15,6 @@ async function main(): Promise<void> {
   const seconds = ((Date.now() - startedAt) / 1000).toFixed(1);
   console.log('\n✅ Ingest complete in ' + seconds + 's');
   console.log(`   season:               ${summary.seasonYear}`);
-  console.log(`   latest round:         ${summary.latestRound}`);
   console.log(`   schedule races:       ${summary.scheduleRaces}`);
   console.log(`   race results:         ${summary.raceResults}`);
   console.log(`   qualifying results:   ${summary.qualifyingResults}`);

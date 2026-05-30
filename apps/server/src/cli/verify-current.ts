@@ -27,11 +27,11 @@ async function main(): Promise<void> {
     where: { seasonYear: year, round },
     orderBy: { position: 'asc' },
     take: 5,
-    include: { driver: true, constructors: true },
+    include: { driver: true, constructorLinks: { include: { constructor: true } } },
   });
   console.log(`▸ Driver standings — after round ${round} (top 5):`);
   for (const s of topDrivers) {
-    const team = s.constructors[0]?.name ?? '—';
+    const team = s.constructorLinks[0]?.constructor.name ?? '—';
     console.log(
       `   ${String(s.position).padStart(2)}. ${s.driver.givenName} ${s.driver.familyName}` +
         `  ${String(s.points).padStart(5)} pts  (${team})`,

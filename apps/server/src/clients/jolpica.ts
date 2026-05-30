@@ -192,40 +192,55 @@ export async function fetchConstructorStandings(
   return { season: list.season, round: list.round, standings: list.ConstructorStandings ?? [] };
 }
 
-/** A single race with its Results (or null if the round has no results yet). */
-export async function fetchRaceResults(season: string, round: string): Promise<ErgastRace | null> {
-  const path = `${season}/${round}/results`;
-  const first = await fetchPage(path, { limit: PAGE_LIMIT, offset: 0 });
-  const race = first.RaceTable?.Races?.[0];
-  if (!race) return null;
-
-  const total = Number(first.total);
-  let offset = PAGE_LIMIT;
-  while (Number.isFinite(total) && offset < total) {
-    const page = await fetchPage(path, { limit: PAGE_LIMIT, offset });
-    const more = page.RaceTable?.Races?.[0]?.Results ?? [];
-    if (more.length === 0) break;
-    race.Results = [...(race.Results ?? []), ...more];
+/**
+ * Bulk-fetch EVERY race's results for a whole season in ~ceil(total/100) calls
+ * (one call per round would be ~20x more — and Jolpica latency is ~2s/call). A
+ * single race's results can straddle a 100-row page boundary, so we merge by round.
+ */
+export async function fetchSeasonResults(season: string): Promise<ErgastRace[]> {
+  const byRound = new Map<number, ErgastRace>();
+  let offset = 0;
+  for (;;) {
+    const page = await fetchPage(`${season}/results`, { limit: PAGE_LIMIT, offset });
+    const races = page.RaceTable?.Races ?? [];
+    for (const race of races) {
+      const round = Number(race.round);
+      const existing = byRound.get(round);
+      if (existing) {
+        existing.Results = [...(existing.Results ?? []), ...(race.Results ?? [])];
+      } else {
+        byRound.set(round, race);
+      }
+    }
+    const total = Number(page.total);
     offset += PAGE_LIMIT;
+    if (!Number.isFinite(total) || offset >= total || races.length === 0) break;
   }
-  return race;
+  return [...byRound.values()].sort((a, b) => Number(a.round) - Number(b.round));
 }
 
-/** A single race with its QualifyingResults (or null if none yet). */
-export async function fetchQualifying(season: string, round: string): Promise<ErgastRace | null> {
-  const path = `${season}/${round}/qualifying`;
-  const first = await fetchPage(path, { limit: PAGE_LIMIT, offset: 0 });
-  const race = first.RaceTable?.Races?.[0];
-  if (!race) return null;
-
-  const total = Number(first.total);
-  let offset = PAGE_LIMIT;
-  while (Number.isFinite(total) && offset < total) {
-    const page = await fetchPage(path, { limit: PAGE_LIMIT, offset });
-    const more = page.RaceTable?.Races?.[0]?.QualifyingResults ?? [];
-    if (more.length === 0) break;
-    race.QualifyingResults = [...(race.QualifyingResults ?? []), ...more];
+/** Bulk-fetch every race's qualifying for a whole season (merged by round). */
+export async function fetchSeasonQualifying(season: string): Promise<ErgastRace[]> {
+  const byRound = new Map<number, ErgastRace>();
+  let offset = 0;
+  for (;;) {
+    const page = await fetchPage(`${season}/qualifying`, { limit: PAGE_LIMIT, offset });
+    const races = page.RaceTable?.Races ?? [];
+    for (const race of races) {
+      const round = Number(race.round);
+      const existing = byRound.get(round);
+      if (existing) {
+        existing.QualifyingResults = [
+          ...(existing.QualifyingResults ?? []),
+          ...(race.QualifyingResults ?? []),
+        ];
+      } else {
+        byRound.set(round, race);
+      }
+    }
+    const total = Number(page.total);
     offset += PAGE_LIMIT;
+    if (!Number.isFinite(total) || offset >= total || races.length === 0) break;
   }
-  return race;
+  return [...byRound.values()].sort((a, b) => Number(a.round) - Number(b.round));
 }

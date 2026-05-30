@@ -20,7 +20,10 @@
     "db:down": "docker compose down",
     "db:reset": "docker compose down -v",
     "ingest:current": "pnpm --filter @f1pulse/server ingest:current",
-    "verify:current": "pnpm --filter @f1pulse/server verify:current"
+    "ingest:history": "pnpm --filter @f1pulse/server ingest:history",
+    "verify:current": "pnpm --filter @f1pulse/server verify:current",
+    "verify:history": "pnpm --filter @f1pulse/server verify:history",
+    "data:integrity": "pnpm --filter @f1pulse/server data:integrity"
   },
   "devDependencies": {
     "concurrently": "^9.1.0",
