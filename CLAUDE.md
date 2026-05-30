@@ -157,8 +157,18 @@ build, not the calendar. Polish is where the bar is earned.
   Desktop is not installed on the dev machine. Prisma has only an `IngestRun` bookkeeping model
   (no race data yet). No features built. CLAUDE.md established.
 - **Day 2 — Database schema.** Full normalised F1 schema designed against real Jolpica JSON (see
-  Schema above). `prisma validate` ✓, `prisma generate` ✓, migration SQL previewed via
-  `migrate diff` ✓ (applies cleanly). Standings stored as per-round snapshots → progression
-  queryable. **Migration not yet applied** — blocked on Postgres (Docker still not installed). Run
-  `pnpm --filter @f1pulse/server exec prisma migrate dev --name init_f1_schema` once `pnpm db:up`
-  works. No ingestion yet.
+  Schema above). `prisma validate` ✓, `prisma generate` ✓. Standings stored as per-round snapshots
+  → progression queryable. **Schema is live in Postgres.** Dev DB is now a **Neon cloud Postgres**
+  (set in `apps/server/.env`, gitignored) instead of local Docker. Applied via `db push`, so there
+  is **no `prisma/migrations/` folder yet** — generate a baseline migration before the first prod
+  deploy (`prisma migrate diff` → `migrations/0_init`, then `migrate resolve --applied`).
+- **Day 3 — Jolpica ingestion (current season).** Built the server-only ingestion layer:
+  `src/clients/jolpica.ts` (serial queue, 300 ms spacing, retry+backoff on 429/5xx, limit≤100
+  pagination), `src/ingest/{ergast-types,parse,ingest}.ts` (typed raw shapes + tolerant parsers +
+  idempotent upserts for seasons/schedule/standings/results/qualifying), CLI `pnpm ingest:current`
+  (via `/current/` alias) and `pnpm verify:current`. **Ran live:** 2026 season, 22 races, 110 race
+  results, 107 qualifying, 110 driver-standing + 55 constructor-standing snapshot rows. Verified
+  with Prisma queries (standings, schedule, latest podium, leader's round-by-round progression) —
+  matches the live API exactly. All upserts → re-running is safe. **Note:** the run took ~11 min
+  because every upsert is a sequential round-trip to remote Neon; batch into transactions / reduce
+  round-trips before the full-history backfill day.

@@ -11,7 +11,9 @@
     "typecheck": "tsc --noEmit",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "ingest:current": "tsx src/cli/ingest-current.ts",
+    "verify:current": "tsx src/cli/verify-current.ts"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",

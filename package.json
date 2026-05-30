@@ -18,7 +18,9 @@
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,css,md}\"",
     "db:up": "docker compose up -d",
     "db:down": "docker compose down",
-    "db:reset": "docker compose down -v"
+    "db:reset": "docker compose down -v",
+    "ingest:current": "pnpm --filter @f1pulse/server ingest:current",
+    "verify:current": "pnpm --filter @f1pulse/server verify:current"
   },
   "devDependencies": {
     "concurrently": "^9.1.0",
