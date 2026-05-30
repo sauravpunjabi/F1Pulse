@@ -29,6 +29,9 @@ export const env = {
   // Third-party sources — server-only. The browser never sees these.
   jolpicaBaseUrl: process.env.JOLPICA_BASE_URL ?? 'https://api.jolpi.ca/ergast/f1',
   openf1BaseUrl: process.env.OPENF1_BASE_URL ?? 'https://api.openf1.org/v1',
+
+  // Cache purge guard — required in production, optional in dev.
+  adminToken: process.env.ADMIN_TOKEN ?? 'dev-admin-token',
 } as const;
 
 export const isProduction = env.nodeEnv === 'production';

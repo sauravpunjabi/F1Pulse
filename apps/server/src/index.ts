@@ -1,6 +1,7 @@
 import cors from 'cors';
 import express from 'express';
 import { env } from './config/env.js';
+import { api } from './api/router.js';
 
 /**
  * F1Pulse API server.
@@ -8,8 +9,6 @@ import { env } from './config/env.js';
  * This is the ONLY tier allowed to touch third-party sources (Jolpica, OpenF1).
  * Ingestion jobs, normalization, the Redis cache, and the public read API all live
  * here. The web app talks exclusively to this server (see CLAUDE.md HARD RULES).
- *
- * Day 1 = scaffold: a bootable server with a health check. Routes arrive later.
  */
 const app = express();
 
@@ -31,6 +30,8 @@ app.get('/health', (_req, res) => {
     timestamp: new Date().toISOString(),
   });
 });
+
+app.use('/api', api);
 
 const server = app.listen(env.port, () => {
   // eslint-disable-next-line no-console

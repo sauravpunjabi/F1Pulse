@@ -166,7 +166,13 @@ build, not the calendar. Polish is where the bar is earned.
 
 ---
 
-## 8. Status Log
+## 8. Second Brain
+
+Full project notes (architecture, rules, status log): `C:/Users/saura/OneDrive/Desktop/codes/Obsidian/Projects/F1Pulse.md`
+
+---
+
+## 9. Status Log
 
 - **Day 1 — Foundation.** pnpm monorepo scaffolded. `apps/web` (Next 14 + Tailwind v3.4 + full
   locked motion/3D/state stack installed) and `apps/server` (Express + Prisma + ioredis + BullMQ)
