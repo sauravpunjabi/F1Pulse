@@ -6,11 +6,11 @@ import { env } from '../config/env.js';
  * BullMQ manages its own Redis connections, so we hand it connection options
  * (not the shared `redis` client). Nothing connects at import time.
  */
-export const queueConnection = { url: env.redisUrl } as const;
+export const queueConnection = { url: env.redisUrl, tls: {} } as const;
 
 /** Canonical queue names — keeps producers and workers in sync. */
 export const QUEUE_NAMES = {
-  ingest: 'f1pulse:ingest',
+  ingest: 'f1pulse-ingest',
 } as const;
 
 export type QueueName = (typeof QUEUE_NAMES)[keyof typeof QUEUE_NAMES];

@@ -210,3 +210,35 @@ Full project notes (architecture, rules, status log): `C:/Users/saura/OneDrive/D
   `RaceResult @@unique([raceId, driverId])` — shared drives (1950s Indy 500) give a driver multiple
   results in one race. Per-round historical _progression_ not yet ingested (run `--progression`,
   ~hours, for it).
+- **Day 5 — REST API + Redis caching.** Express REST API in `src/api/` serving clean DTOs (no Prisma
+  or Ergast shapes leak to client). 8 routes: `/api/season/current`, `/api/standings/drivers|constructors`,
+  `/api/schedule`, `/api/results/:season/:round`, `/api/driver/:driverId`, `/api/constructor/:id`,
+  `/api/history/champions`. Redis cache-aside (Upstash cloud Redis, confirmed live via PING): 5 min TTL
+  for current-season, 24h for historical. Fail-fast cache client (`enableOfflineQueue: false` + 500ms
+  timeout) so Redis being down degrades gracefully to DB-only reads. Admin purge endpoint guarded by
+  `ADMIN_TOKEN`. **BullMQ repeatable job** (`ingest-current`, 60 min cadence) starts with the server —
+  after each successful ingest it purges current-season Redis keys. Manual trigger:
+  `POST /api/admin/ingest/trigger`. **Era-aware endpoints** with 24h TTL:
+  `/api/era/:year/{champion,drivers,races}` and `/api/era/range?from=&to=`. **Cache pre-warm** on
+  startup (async, non-blocking) for 10 key eras: 1950, 1967, 1976, 1984, 1988, 1994, 2000, 2009,
+  2021, current. Bugs: BullMQ v5 rejects queue names with colons (`f1pulse:ingest` → `f1pulse-ingest`);
+  Upstash Redis URL had a `redis-cli --tls -u ` prefix and wrong scheme (fixed to `rediss://`).
+- **Day 6 — Refresh jobs + era-aware endpoints.** BullMQ repeatable job (60 min normal cadence) in
+  `src/jobs/{ingest-scheduler,ingest-worker}.ts`: after each successful ingest purges all
+  current-season Redis keys; also purges `f1pulse:live:status` so live state refreshes. Era endpoints
+  (`/api/era/:year/{champion,drivers,races}` and `/api/era/range`) in `src/api/routes/era.ts` with 24h
+  TTL. Cache pre-warm on startup (`src/api/cache-warm.ts`) for 10 key eras: 1950, 1967, 1976, 1984,
+  1988, 1994, 2000, 2009, 2021, current — async, non-blocking. Manual trigger endpoint
+  `POST /api/admin/ingest/trigger` confirmed working. Job cadence is updated post-run based on live
+  session state (5 min when race-live, 60 min otherwise).
+- **Day 7 — Live layer (OpenF1 + WebSocket).** OpenF1 typed client (`src/clients/openf1.ts`) with
+  circuit-breaker (3 consecutive failures → 30s open, half-open recovery); methods for sessions,
+  positions, intervals, drivers; returns null on any error — never throws. `GET /api/live/status` in
+  `src/api/routes/live.ts` (60s cache TTL) returns `WeekendStatus` derived from **two sources**:
+  Postgres schedule (always available) + OpenF1 session data (best-effort). Seven states:
+  `off-season | race-week | practice | qualifying | sprint | race-live | post-race`. WebSocket server
+  (`src/live/broadcaster.ts`) attached to HTTP server at `/ws/live`: silent when no session active,
+  polls OpenF1 every 3s during live sessions, state-check loop every 30s, pings every 20s. Degradation
+  proven via `src/cli/test-live-degraded.ts` — with circuit breaker forced open, `/api/live/status`
+  still returns valid schedule-derived response with `openf1Available: false`. All other routes
+  unaffected when OpenF1 is unreachable.

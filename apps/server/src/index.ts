@@ -2,6 +2,12 @@ import cors from 'cors';
 import express from 'express';
 import { env } from './config/env.js';
 import { api } from './api/router.js';
+import { createIngestWorker } from './jobs/ingest-worker.js';
+import { registerIngestJob, closeIngestQueue } from './jobs/ingest-scheduler.js';
+import { schedulePrewarm } from './api/cache-warm.js';
+import { broadcaster } from './live/broadcaster.js';
+
+/* eslint-disable no-console */
 
 /**
  * F1Pulse API server.
@@ -14,7 +20,6 @@ const app = express();
 
 app.use(express.json());
 
-// Lock CORS to our own frontend only.
 app.use(
   cors({
     origin: env.webOrigin,
@@ -33,14 +38,35 @@ app.get('/health', (_req, res) => {
 
 app.use('/api', api);
 
-const server = app.listen(env.port, () => {
-  // eslint-disable-next-line no-console
+const server = app.listen(env.port, async () => {
   console.log(`▲ F1Pulse API listening on http://localhost:${env.port}`);
+
+  // Attach WebSocket live broadcaster to the same HTTP server.
+  // Must be attached before any other async work so upgrade events are hooked early.
+  broadcaster.attach(server);
+
+  // Start the BullMQ worker (processes jobs from the ingest queue).
+  createIngestWorker();
+
+  // Register the repeatable ingest job (60 min cadence).
+  try {
+    await registerIngestJob();
+  } catch (err) {
+    console.warn(
+      '[startup] BullMQ job registration failed (Redis may be down):',
+      (err as Error).message,
+    );
+  }
+
+  // Pre-warm Redis cache for key eras — async, never blocks startup.
+  schedulePrewarm();
 });
 
-// Graceful shutdown so tsx hot-reloads and container stops are clean.
 for (const signal of ['SIGINT', 'SIGTERM'] as const) {
-  process.on(signal, () => {
-    server.close(() => process.exit(0));
+  process.on(signal, async () => {
+    server.close();
+    await broadcaster.close();
+    await closeIngestQueue();
+    process.exit(0);
   });
 }

@@ -14,6 +14,9 @@ import { resultsRouter } from './routes/results.js';
 import { driverRouter } from './routes/driver.js';
 import { constructorRouter } from './routes/constructor.js';
 import { historyRouter } from './routes/history.js';
+import { eraRouter } from './routes/era.js';
+import { liveRouter } from './routes/live.js';
+import { triggerIngestNow } from '../jobs/ingest-scheduler.js';
 
 const api = Router();
 
@@ -25,6 +28,8 @@ api.use('/results', resultsRouter);
 api.use('/driver', driverRouter);
 api.use('/constructor', constructorRouter);
 api.use('/history', historyRouter);
+api.use('/era', eraRouter);
+api.use('/live', liveRouter);
 
 // ── Admin: cache purge ────────────────────────────────────────────────────────
 
@@ -49,6 +54,19 @@ api.delete('/cache/purge', requireAdmin, async (req, res, next) => {
     const pattern = (req.query['pattern'] as string | undefined) ?? '';
     const deleted = pattern ? await purgeByPattern(pattern) : await purgeAll();
     res.json({ deleted, pattern: pattern || 'f1pulse:*' });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * POST /api/admin/ingest/trigger
+ * Enqueues a one-off ingest job immediately. Guarded by ADMIN_TOKEN.
+ */
+api.post('/admin/ingest/trigger', requireAdmin, async (_req, res, next) => {
+  try {
+    const jobId = await triggerIngestNow();
+    res.json({ queued: true, jobId });
   } catch (err) {
     next(err);
   }

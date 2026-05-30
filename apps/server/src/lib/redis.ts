@@ -3,8 +3,7 @@ import { env } from '../config/env.js';
 
 /**
  * Shared Redis connection — F1Pulse's response cache and BullMQ backend.
- * `lazyConnect` keeps the process bootable even when Redis isn't running yet
- * (e.g. before `docker compose up`); it connects on first command.
+ * Points at Upstash Redis (cloud, TLS via rediss:// URL).
  *
  * `maxRetriesPerRequest: null` is required by BullMQ for its blocking commands.
  */
@@ -15,13 +14,13 @@ export const redis =
   new Redis(env.redisUrl, {
     lazyConnect: true,
     maxRetriesPerRequest: null,
+    tls: {},
   });
 
 /**
- * Dedicated connection for the API response cache. Unlike the BullMQ client above,
- * this one FAILS FAST when Redis is unavailable (`enableOfflineQueue: false`) so a
- * missing/slow Redis degrades gracefully to DB-only reads instead of hanging the
- * request. It still reconnects automatically when Redis comes back.
+ * Dedicated connection for the API response cache. FAILS FAST when Redis is
+ * unavailable so a missing/slow Redis degrades gracefully to DB-only reads.
+ * Timeout + no offline queue prevents requests from hanging.
  */
 export const cacheRedis =
   globalForRedis.cacheRedis ??
@@ -29,10 +28,10 @@ export const cacheRedis =
     lazyConnect: true,
     enableOfflineQueue: false,
     maxRetriesPerRequest: 1,
-    connectTimeout: 1000,
+    connectTimeout: 2000,
+    tls: {},
   });
 
-// Swallow connection errors — cacheAside() handles absence by falling back to the DB.
 cacheRedis.on('error', () => {});
 
 if (env.nodeEnv !== 'production') {
