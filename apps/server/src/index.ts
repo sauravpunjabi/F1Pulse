@@ -22,7 +22,7 @@ app.use(express.json());
 
 app.use(
   cors({
-    origin: env.webOrigin,
+    origin: env.webOrigin.split(',').map(s => s.trim()),
     credentials: true,
   }),
 );

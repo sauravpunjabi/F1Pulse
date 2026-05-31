@@ -80,6 +80,12 @@ export interface RaceScheduleDto {
   sessions: SessionSchedule;
 }
 
+/** GET /api/schedule returns the calendar wrapped in a season envelope. */
+export interface ScheduleDto {
+  season: number;
+  races: RaceScheduleDto[];
+}
+
 export interface SeasonCurrentDto {
   year: number;
   nextRace: RaceScheduleDto | null;
@@ -209,7 +215,7 @@ export const fetchConstructorStandings = (season: 'current' | number = 'current'
   apiFetch<ConstructorStandingsDto>(`/api/standings/constructors?season=${season}`);
 
 export const fetchSchedule = (season: 'current' | number = 'current') =>
-  apiFetch<RaceScheduleDto[]>(`/api/schedule?season=${season}`);
+  apiFetch<ScheduleDto>(`/api/schedule?season=${season}`);
 
 export const fetchHistoryChampions = () =>
   apiFetch<HistoryChampionsDto>('/api/history/champions');
@@ -260,7 +266,7 @@ export function useConstructorStandings(
 
 export function useSchedule(
   season: 'current' | number = 'current',
-): UseQueryResult<RaceScheduleDto[]> {
+): UseQueryResult<ScheduleDto> {
   return useQuery({
     queryKey: queryKeys.schedule(season),
     queryFn:  () => fetchSchedule(season),

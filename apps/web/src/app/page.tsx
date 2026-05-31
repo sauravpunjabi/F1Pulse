@@ -1,119 +1,112 @@
 'use client';
 
 /**
- * / — Home page (Day 8 gate)
+ * / — Homepage: one authored cinematic scene.
  *
- * Renders the atmosphere layer (inherited from layout) and makes one live call
- * to /api/season/current. Shows the season year and next race name from real
- * API data. No hardcoded values.
+ * Choreographed top to bottom:
+ *   1. StartLightsLoader — F1 start-light sequence while initial data loads.
+ *   2. Hero             — title + season + next-race countdown + leader.
+ *   3. DriversChampionship
+ *   4. ConstructorsChampionship
+ *   5. SeasonCalendar
  *
- * This is intentionally sparse — the cinematic hero, navigation, and all
- * visual design land in subsequent days. The gate is:
- *   ✓ Atmosphere visible (grain + vignette from layout)
- *   ✓ Real data on screen (year + next race from Postgres)
- *   ✗ No hardcoded race data anywhere
+ * All data flows from our own API via React Query (lib/api). Zero hardcoded
+ * race data — every value on screen is fetched, and every section degrades to
+ * an honest empty/error state if a feed is unreachable.
+ *
+ * Loader gate: the loader holds until the hero-critical queries SETTLE
+ * (success or error) AND ≥2.5s has elapsed — "until data resolves or 2.5s,
+ * whichever is longer." An 8s ceiling guarantees a hung request never traps
+ * the user; the hero then shows its own empty states.
+ *
+ * Adaptive state: useSyncLiveStatus mirrors /api/live/status into Zustand;
+ * useTempo derives 'live' | 'normal' | 'calm' and every section reads it
+ * (data-tempo + class hooks) for the art director to diverge visually.
  */
 
-import { useSeasonCurrent } from '@/lib/api';
+import { useCallback, useEffect, useState } from 'react';
+import {
+  useSeasonCurrent,
+  useDriverStandings,
+  useConstructorStandings,
+  useSchedule,
+} from '@/lib/api';
+import { AtmosphereLayer } from '@/components/r3f/AtmosphereLayer';
+import {
+  StartLightsLoader,
+  Hero,
+  DriversChampionship,
+  ConstructorsChampionship,
+  SeasonCalendar,
+  useSyncLiveStatus,
+  useTempo,
+} from '@/components/home';
+
+const MIN_LOADER_MS = 2_500; // floor: lights get their full sequence
+const MAX_LOADER_MS = 8_000; // ceiling: never trap the user on a hung feed
 
 export default function HomePage() {
-  const { data, isLoading, isError } = useSeasonCurrent();
+  // ── Adaptive live status → Zustand → tempo ────────────────────────────────
+  useSyncLiveStatus();
+  const tempo = useTempo();
+
+  // ── Data (all client-side via React Query) ────────────────────────────────
+  const season = useSeasonCurrent();
+  const drivers = useDriverStandings('current');
+  const constructors = useConstructorStandings('current');
+  const schedule = useSchedule('current');
+
+  // ── Loader gate ───────────────────────────────────────────────────────────
+  // Hero-critical = season + driver standings. A query is "settled" once it has
+  // either data or an error — we don't wait forever on a dead backend.
+  const heroSettled =
+    (season.isSuccess || season.isError) && (drivers.isSuccess || drivers.isError);
+
+  const [minElapsed, setMinElapsed] = useState(false);
+  const [maxElapsed, setMaxElapsed] = useState(false);
+
+  useEffect(() => {
+    const min = window.setTimeout(() => setMinElapsed(true), MIN_LOADER_MS);
+    const max = window.setTimeout(() => setMaxElapsed(true), MAX_LOADER_MS);
+    return () => {
+      window.clearTimeout(min);
+      window.clearTimeout(max);
+    };
+  }, []);
+
+  const ready = minElapsed && (heroSettled || maxElapsed);
+
+  // ── Loader → hero handoff ─────────────────────────────────────────────────
+  const [revealed, setRevealed] = useState(false);
+  const [loaderGone, setLoaderGone] = useState(false);
+
+  const handleRevealStart = useCallback(() => setRevealed(true), []);
+  const handleComplete = useCallback(() => setLoaderGone(true), []);
 
   return (
-    <main
-      className="relative flex min-h-dvh flex-col items-center justify-center gap-8 px-6 text-center"
-      // TODO: Art director — replace this placeholder layout with the cinematic
-      // hero design. This file exists only to prove the data pipeline works.
-    >
-      {/* Wordmark / logotype placeholder */}
-      {/* TODO: Replace with SVG logotype once the identity is locked */}
-      <p className="font-mono text-[0.65rem] uppercase tracking-[0.5em] text-silver">
-        Est. 1950 — Live 2026
-      </p>
-
-      <h1
-        className="font-display text-7xl font-semibold tracking-tight text-off-white sm:text-9xl"
-        // TODO: Typography — set font-display to the chosen display face in
-        // globals.css --font-display and wire the optical size / weight here.
-      >
-        F1Pulse
-      </h1>
-
-      {/* Live data readout — the Day 8 gate */}
-      <div className="flex flex-col items-center gap-3">
-        {isLoading && (
-          <p className="font-mono text-xs text-steel">
-            {/* TODO: Replace with skeleton shimmer once design is defined */}
-            Loading season data…
-          </p>
-        )}
-
-        {isError && (
-          <p className="font-mono text-xs text-red">
-            {/* TODO: Design error state — retry button, degraded message */}
-            API unavailable — check server
-          </p>
-        )}
-
-        {data && (
-          <>
-            <p className="font-mono text-sm tabular-nums text-off-white/80">
-              {/* Real season year from Postgres — never hardcoded */}
-              Season{' '}
-              <span className="text-off-white font-medium">{data.year}</span>
-            </p>
-
-            {data.nextRace ? (
-              <div className="flex flex-col items-center gap-1">
-                <p className="font-mono text-[0.65rem] uppercase tracking-[0.35em] text-silver">
-                  Next Race
-                </p>
-                <p className="font-sans text-base font-medium text-off-white">
-                  {/* Real race name from Postgres — never hardcoded */}
-                  {data.nextRace.name}
-                </p>
-                <p className="font-mono text-xs text-silver">
-                  Round {data.nextRace.round} ·{' '}
-                  {data.nextRace.circuit.locality ?? data.nextRace.circuit.name},{' '}
-                  {data.nextRace.circuit.country}
-                </p>
-                <p className="font-mono text-[0.65rem] tabular-nums text-steel">
-                  {new Date(data.nextRace.date).toLocaleDateString('en-GB', {
-                    weekday: 'short',
-                    day: 'numeric',
-                    month: 'long',
-                    year: 'numeric',
-                  })}
-                </p>
-              </div>
-            ) : (
-              <p className="font-mono text-xs text-silver">
-                Season complete
-              </p>
-            )}
-
-            {data.leader && (
-              <div className="mt-2 flex flex-col items-center gap-1">
-                <p className="font-mono text-[0.65rem] uppercase tracking-[0.35em] text-silver">
-                  Championship Leader
-                </p>
-                <p className="font-sans text-base font-medium text-off-white">
-                  {data.leader.driver.givenName} {data.leader.driver.familyName}
-                </p>
-                <p className="font-mono text-xs text-silver">
-                  {data.leader.points} pts · {data.leader.wins}{' '}
-                  {data.leader.wins === 1 ? 'win' : 'wins'}
-                </p>
-              </div>
-            )}
-          </>
-        )}
+    <>
+      {/*
+       * R3F atmospheric backdrop — behind everything, scroll-reactive, and a
+       * no-op when WebGL is unavailable. Fixed so it persists across the scroll.
+       */}
+      <div className="pointer-events-none fixed inset-0 -z-10" aria-hidden="true">
+        <AtmosphereLayer />
       </div>
 
-      {/* Day marker — remove once real hero design lands */}
-      <p className="absolute bottom-6 font-mono text-[0.6rem] uppercase tracking-[0.4em] text-steel">
-        Foundation · Day 8 Gate
-      </p>
-    </main>
+      <main className="relative">
+        <Hero season={season} drivers={drivers} revealed={revealed} tempo={tempo} />
+        <DriversChampionship query={drivers} tempo={tempo} />
+        <ConstructorsChampionship query={constructors} tempo={tempo} />
+        <SeasonCalendar query={schedule} tempo={tempo} />
+      </main>
+
+      {!loaderGone && (
+        <StartLightsLoader
+          ready={ready}
+          onRevealStart={handleRevealStart}
+          onComplete={handleComplete}
+        />
+      )}
+    </>
   );
 }
