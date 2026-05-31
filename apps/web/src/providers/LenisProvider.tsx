@@ -1,27 +1,38 @@
 'use client';
 
 /**
- * Lenis smooth-scroll provider.
+ * LenisProvider — smooth scroll + GSAP ScrollTrigger sync.
  *
- * Initialises a single Lenis instance on mount and exposes it via context.
- * GSAP ScrollTrigger is wired to Lenis's raf loop so scroll-driven animations
- * stay frame-perfect.
+ * INTEGRATION CONTRACT (do not change without re-testing):
+ *   1. Lenis runs inside GSAP's ticker — NOT a manual requestAnimationFrame.
+ *      gsap.ticker.add((time) => lenis.raf(time * 1000))
+ *      GSAP time is in seconds; lenis.raf expects milliseconds.
+ *   2. GSAP lag smoothing disabled so the ticker doesn't skip frames on tab
+ *      refocus, which would desync Lenis from ScrollTrigger.
+ *      gsap.ticker.lagSmoothing(0)
+ *   3. ScrollTrigger.update() called on every Lenis scroll event so pinned
+ *      elements and scrub animations track the interpolated position, not the
+ *      native scroll position.
+ *      lenis.on('scroll', ScrollTrigger.update)
+ *   4. ScrollTrigger's scroller stays at window (default). Do NOT set a custom
+ *      scroller proxy — Lenis writes to native scroll, so ST reads it correctly.
  *
- * TODO: When GSAP ScrollTrigger sequences land, import ScrollTrigger here and
- * uncomment the gsap.registerPlugin / ScrollTrigger.update lines.
- *
- * TODO: Tune Lenis options (lerp, duration, easing) once the first scroll
- * sequence is choreographed. Current values are conservative defaults.
+ * Context value uses useState (not useRef) so consumers re-render once the
+ * Lenis instance is live after mount.
  */
 
 import {
   createContext,
   useContext,
   useEffect,
-  useRef,
+  useState,
   type ReactNode,
 } from 'react';
 import Lenis from 'lenis';
+import { gsap } from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+
+gsap.registerPlugin(ScrollTrigger);
 
 // ── Context ───────────────────────────────────────────────────────────────────
 
@@ -34,49 +45,50 @@ export function useLenis(): Lenis | null {
 // ── Provider ──────────────────────────────────────────────────────────────────
 
 export function LenisProvider({ children }: { children: ReactNode }) {
-  const lenisRef = useRef<Lenis | null>(null);
+  const [lenis, setLenis] = useState<Lenis | null>(null);
 
   useEffect(() => {
-    const lenis = new Lenis({
-      // TODO: tune these once scroll sequences exist
-      duration: 1.2,         // TODO: target feel — snappier = lower, silkier = higher
-      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)), // expo out
-      // orientation: 'vertical',
-      // gestureOrientation: 'vertical',
-      // smoothWheel: true,
-      // wheelMultiplier: 1,
+    const instance = new Lenis({
+      duration: 1.2,
+      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)), // expo-out
     });
 
-    lenisRef.current = lenis;
+    // ── GSAP ticker sync (the only correct approach) ───────────────────────
+    // Store as named reference so cleanup can remove the exact same function.
+    const tickerHandler = (time: number) => instance.raf(time * 1000);
+    gsap.ticker.add(tickerHandler); // GSAP = seconds, Lenis = ms
 
-    // RAF loop — drives Lenis and (when wired) GSAP ScrollTrigger
-    let rafId: number;
-    function raf(time: number) {
-      lenis.raf(time);
-      // TODO: when GSAP ScrollTrigger lands, add:
-      //   ScrollTrigger.update();
-      rafId = requestAnimationFrame(raf);
-    }
-    rafId = requestAnimationFrame(raf);
+    // Prevent GSAP from batching/smoothing frames on tab-refocus, which would
+    // cause a single large jump that desynchronises Lenis and ScrollTrigger.
+    gsap.ticker.lagSmoothing(0);
 
-    // Respect prefers-reduced-motion: stop smooth scrolling, use native
+    // Keep ScrollTrigger positions in sync with Lenis's interpolated scroll.
+    // This is the only lenis.on('scroll', …) handler we register.
+    instance.on('scroll', ScrollTrigger.update);
+
+    setLenis(instance);
+
+    // ── Reduced-motion: disable smooth scroll, keep native behaviour ───────
     const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
-    if (mq.matches) lenis.stop();
+    if (mq.matches) instance.stop();
+
     const handleMq = (e: MediaQueryListEvent) => {
-      if (e.matches) lenis.stop();
-      else lenis.start();
+      if (e.matches) instance.stop();
+      else instance.start();
     };
     mq.addEventListener('change', handleMq);
 
     return () => {
-      cancelAnimationFrame(rafId);
+      gsap.ticker.remove(tickerHandler);
+      instance.off('scroll', ScrollTrigger.update);
       mq.removeEventListener('change', handleMq);
-      lenis.destroy();
+      instance.destroy();
+      setLenis(null);
     };
   }, []);
 
   return (
-    <LenisContext.Provider value={lenisRef.current}>
+    <LenisContext.Provider value={lenis}>
       {children}
     </LenisContext.Provider>
   );
