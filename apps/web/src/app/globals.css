@@ -2,18 +2,122 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ─────────────────────────────────────────────────────────────────────────────
+   F1Pulse — Design Token Layer
+   All visual decisions live here as CSS vars. Tailwind reads them via
+   tailwind.config.ts. Never use raw hex values in component code.
+   ───────────────────────────────────────────────────────────────────────────── */
+
 :root {
   color-scheme: dark;
+
+  /* ── Palette ──────────────────────────────────────────────────────────────── */
+  --color-black:     #050505; /* matte black — deepest background */
+  --color-void:      #0f0f0f; /* near-black — surface behind cards */
+  --color-graphite:  #161616; /* graphite — elevated surface / card bg */
+  --color-iron:      #222222; /* subtle lift above graphite */
+  --color-steel:     #3a3a3a; /* borders, dividers */
+  --color-silver:    #a8a8a8; /* secondary text, muted labels */
+  --color-off-white: #f5f5f5; /* primary text */
+  --color-red:       #E10600; /* Ferrari red — Ferrari/accent */
+  --color-red-dim:   #9a0400; /* dimmed red for hover/state */
+
+  /* ── Semantic aliases (map palette → role) ────────────────────────────────── */
+  --bg:              var(--color-black);
+  --bg-surface:      var(--color-void);
+  --bg-elevated:     var(--color-graphite);
+  --border:          var(--color-steel);
+  --text-primary:    var(--color-off-white);
+  --text-secondary:  var(--color-silver);
+  --accent:          var(--color-red);
+  --accent-dim:      var(--color-red-dim);
+
+  /* ── Typography — font families ───────────────────────────────────────────── */
+  /* TODO: Replace with chosen display face (editorial serif, variable optical-
+     size font, or custom). Good candidates: "Freight Display", "Canela",
+     "Neue Haas Grotesk Display", "Editorial New". Drop the @font-face or
+     Google Fonts import above this block and point --font-display at it.      */
+  --font-display: 'Georgia', serif;          /* TODO: cinematic display face */
+
+  /* TODO: Replace with chosen body face. Candidates: "Inter", "Söhne",
+     "Aktiv Grotesk", "DM Sans", "Graphik". Must be clean at 13–15px on
+     dark backgrounds.                                                          */
+  --font-sans:    system-ui, sans-serif;     /* TODO: body / UI face */
+
+  /* TODO: For timing data, lap deltas, positions. Candidates: "JetBrains Mono",
+     "IBM Plex Mono", "Departure Mono".                                         */
+  --font-mono:    'Courier New', monospace;  /* TODO: mono / telemetry face */
+
+  /* ── Motion duration presets ──────────────────────────────────────────────── */
+  /* TODO: Tune these once the first motion sequences are choreographed.
+     The current values follow the design system recommendation:
+     fast = micro-interaction, measured = standard transition, slow = page reveal.
+     Framer Motion variants should reference these via CSS var or JS const.     */
+  --duration-fast:     150ms; /* micro: button hover, focus ring */
+  --duration-measured: 280ms; /* standard: panel open, card expand */
+  --duration-slow:     600ms; /* reveal: page entrance, hero fade */
+
+  /* TODO: Easing curves. Add more exotic spring curves here when the motion
+     choreography day arrives.                                                  */
+  --ease-out:    cubic-bezier(0.16, 1, 0.3, 1);   /* snappy decelerate */
+  --ease-in:     cubic-bezier(0.4, 0, 1, 1);       /* confident accelerate */
+  --ease-inout:  cubic-bezier(0.65, 0, 0.35, 1);  /* smooth both ends */
+
+  /* ── Atmosphere layer ─────────────────────────────────────────────────────── */
+  /* TODO: Dial these in during visual polish. Grain is intentionally subtle —
+     if you can see it at arm's length it's too strong. Vignette should
+     deepen the frame without feeling like a filter.                             */
+  --grain-opacity:    0.035;  /* TODO: target range 0.02–0.06 */
+  --vignette-opacity: 0.55;   /* TODO: target range 0.4–0.7 */
+  --vignette-spread:  55%;    /* TODO: how far the vignette reaches inward */
+
+  /* ── Z-index scale ────────────────────────────────────────────────────────── */
+  --z-base:       0;
+  --z-raised:     10;
+  --z-overlay:    20;
+  --z-modal:      40;
+  --z-nav:        60;
+  --z-atmosphere: 9999; /* always on top — atmosphere layer */
 }
+
+/* ── Base reset ─────────────────────────────────────────────────────────────── */
 
 html,
 body {
   height: 100%;
+  background-color: var(--bg);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
-body {
-  background-color: theme('colors.ink');
-  color: theme('colors.bone');
-  -webkit-font-smoothing: antialiased;
-  text-rendering: optimizeLegibility;
+/* Smooth scroll handed off to Lenis — keep native scroll behaviour neutral */
+html {
+  scroll-behavior: auto;
+}
+
+/* ── Selection ──────────────────────────────────────────────────────────────── */
+::selection {
+  background-color: var(--accent);
+  color: var(--color-off-white);
+}
+
+/* ── Focus ring ─────────────────────────────────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ── Reduced motion ─────────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
