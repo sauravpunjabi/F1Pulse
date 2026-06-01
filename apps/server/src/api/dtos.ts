@@ -156,6 +156,26 @@ export interface DriverCareerSeasonDto {
   constructors: ConstructorRef[];
 }
 
+export interface DriverStatsDto {
+  wins: number;
+  podiums: number;
+  poles: number;
+  championships: number;
+  seasonsRaced: number;
+}
+
+export interface DriverWinDto {
+  season: number;
+  round: number;
+  raceName: string;
+  circuitName: string;
+  country: string | null;
+  constructor: ConstructorRef;
+  date: string;
+  laps: number;
+  timeText: string | null;
+}
+
 export interface DriverProfileDto {
   id: string;
   givenName: string;
@@ -165,6 +185,7 @@ export interface DriverProfileDto {
   nationality: string | null;
   dateOfBirth: string | null;
   career: DriverCareerSeasonDto[];
+  stats: DriverStatsDto;
 }
 
 export interface ConstructorProfileDto {

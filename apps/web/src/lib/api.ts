@@ -173,6 +173,52 @@ export interface SeasonChampionDto {
 /** GET /api/history/champions returns an array of SeasonChampionDto */
 export type HistoryChampionsDto = SeasonChampionDto[];
 
+export interface DriverCareerSeasonDto {
+  season: number;
+  round: number;
+  position: number;
+  positionText: string;
+  points: number;
+  wins: number;
+  constructors: ConstructorRef[];
+}
+
+export interface DriverStatsDto {
+  wins: number;
+  podiums: number;
+  poles: number;
+  championships: number;
+  seasonsRaced: number;
+}
+
+export interface DriverProfileDto {
+  id: string;
+  givenName: string;
+  familyName: string;
+  code: string | null;
+  permanentNumber: number | null;
+  nationality: string | null;
+  dateOfBirth: string | null;
+  career: DriverCareerSeasonDto[];
+  stats: DriverStatsDto;
+}
+
+export type DriverSeasonsDto = DriverCareerSeasonDto[];
+
+export interface DriverWinDto {
+  season: number;
+  round: number;
+  raceName: string;
+  circuitName: string;
+  country: string | null;
+  constructor: ConstructorRef;
+  date: string;
+  laps: number;
+  timeText: string | null;
+}
+
+export type DriverWinsDto = DriverWinDto[];
+
 /** Live status — mirrors apps/server/src/live/types.ts */
 export type WeekendStatus =
   | 'off-season'
@@ -223,6 +269,15 @@ export const fetchHistoryChampions = () =>
 export const fetchLiveStatus = () =>
   apiFetch<LiveStatusDto>('/api/live/status');
 
+export const fetchDriverProfile = (driverId: string) =>
+  apiFetch<DriverProfileDto>(`/api/driver/${driverId}`);
+
+export const fetchDriverSeasons = (driverId: string) =>
+  apiFetch<DriverSeasonsDto>(`/api/driver/${driverId}/seasons`);
+
+export const fetchDriverWins = (driverId: string) =>
+  apiFetch<DriverWinsDto>(`/api/driver/${driverId}/wins`);
+
 // ── React Query keys ──────────────────────────────────────────────────────────
 
 export const queryKeys = {
@@ -232,6 +287,9 @@ export const queryKeys = {
   schedule:               (s: 'current' | number) => ['schedule', s] as const,
   historyChampions:       ['history', 'champions'] as const,
   liveStatus:             ['live', 'status'] as const,
+  driverProfile:          (id: string) => ['driver', id] as const,
+  driverSeasons:          (id: string) => ['driver', id, 'seasons'] as const,
+  driverWins:             (id: string) => ['driver', id, 'wins'] as const,
 } as const;
 
 // ── React Query hooks ─────────────────────────────────────────────────────────
@@ -288,6 +346,33 @@ export function useLiveStatus(): UseQueryResult<LiveStatusDto> {
     queryFn:  fetchLiveStatus,
     staleTime: 60 * 1000,            // 60s — mirrors server cache TTL
     refetchInterval: 60 * 1000,      // poll every 60s to catch session state changes
+  });
+}
+
+export function useDriverProfile(driverId: string): UseQueryResult<DriverProfileDto> {
+  return useQuery({
+    queryKey: queryKeys.driverProfile(driverId),
+    queryFn:  () => fetchDriverProfile(driverId),
+    staleTime: 5 * 60 * 1000,
+    enabled: !!driverId,
+  });
+}
+
+export function useDriverSeasons(driverId: string): UseQueryResult<DriverSeasonsDto> {
+  return useQuery({
+    queryKey: queryKeys.driverSeasons(driverId),
+    queryFn:  () => fetchDriverSeasons(driverId),
+    staleTime: 5 * 60 * 1000,
+    enabled: !!driverId,
+  });
+}
+
+export function useDriverWins(driverId: string): UseQueryResult<DriverWinsDto> {
+  return useQuery({
+    queryKey: queryKeys.driverWins(driverId),
+    queryFn:  () => fetchDriverWins(driverId),
+    staleTime: 24 * 60 * 60 * 1000, // historical wins don't change
+    enabled: !!driverId,
   });
 }
 
