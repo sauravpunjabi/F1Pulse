@@ -7,7 +7,8 @@ const router = Router();
 
 /**
  * GET /api/constructor/:id
- * Constructor profile, championship years, and recent drivers (by race results).
+ * Constructor profile: championship timeline with drivers' champion, total wins,
+ * all-time unique driver roster, and active season range.
  */
 router.get('/:constructorId', async (req, res, next) => {
   try {
@@ -19,48 +20,108 @@ router.get('/:constructorId', async (req, res, next) => {
 
     const key = cacheKey('constructor', constructorId);
     const dto = await cacheAside<ConstructorProfileDto | null>(key, TTL.SHORT, async () => {
-      const constructor = await prisma.constructor.findUnique({ where: { constructorId } });
-      if (!constructor) return null;
+      const ctor = await prisma.constructor.findUnique({ where: { constructorId } });
+      if (!ctor) return null;
 
-      // Championship years: ConstructorStanding position=1 at the final round of each season.
-      const allStandings = await prisma.constructorStanding.findMany({
+      // ── Constructor championship seasons ────────────────────────────────────
+      // Full model to avoid Prisma's "constructor" field name conflicting with
+      // TypeScript's built-in Function.constructor when using partial select.
+
+      const allCsStandings = await prisma.constructorStanding.findMany({
         where: { constructorId, position: 1 },
         orderBy: { seasonYear: 'asc' },
       });
 
-      // Find the max round per season (the "final" snapshot).
-      const maxRoundBySeason = await prisma.constructorStanding.groupBy({
+      const maxCsRoundBySeason = await prisma.constructorStanding.groupBy({
         by: ['seasonYear'],
         where: { constructorId },
         _max: { round: true },
       });
-      const finalRound = new Map(maxRoundBySeason.map((r) => [r.seasonYear, r._max.round ?? 0]));
-      const championshipYears = allStandings
-        .filter((s) => s.round === finalRound.get(s.seasonYear))
+      const csFinalRound = new Map(
+        maxCsRoundBySeason.map((r) => [r.seasonYear, r._max.round ?? 0]),
+      );
+
+      const championshipSeasons = allCsStandings
+        .filter((s) => s.round === csFinalRound.get(s.seasonYear))
         .map((s) => s.seasonYear);
 
-      // Recent drivers: groupBy driverId for this constructor in the last 3 seasons,
-      // then fetch profiles. groupBy avoids the Prisma `constructor` field name clash.
-      const currentYear = new Date().getUTCFullYear();
-      const grouped = await prisma.raceResult.groupBy({
+      // ── Drivers' champion for each constructor title year ───────────────────
+
+      const driverChampionships = await (async () => {
+        if (championshipSeasons.length === 0) return [];
+
+        const maxDsRoundBySeason = await prisma.driverStanding.groupBy({
+          by: ['seasonYear'],
+          where: { seasonYear: { in: championshipSeasons } },
+          _max: { round: true },
+        });
+
+        const champions = await Promise.all(
+          maxDsRoundBySeason.map(({ seasonYear, _max }) => {
+            const finalRound = _max.round;
+            if (!finalRound) return null;
+            return prisma.driverStanding.findFirst({
+              where: { seasonYear, round: finalRound, position: 1 },
+              include: { driver: true },
+            });
+          }),
+        );
+
+        return champions
+          .filter((c): c is NonNullable<typeof c> => c !== null)
+          .map((c) => ({
+            year: c.seasonYear,
+            driverId: c.driverId,
+            driverName: c.driver.familyName,
+            driverCode: c.driver.code,
+            points: c.points,
+          }))
+          .sort((a, b) => a.year - b.year);
+      })();
+
+      // ── Total race wins ─────────────────────────────────────────────────────
+
+      const totalWins = await prisma.raceResult.count({
+        where: { constructorId, position: 1 },
+      });
+
+      // ── All-time unique drivers ─────────────────────────────────────────────
+
+      const driverGroups = await prisma.raceResult.groupBy({
         by: ['driverId'],
-        where: {
-          constructorId,
-          race: { seasonYear: { gte: currentYear - 2 } },
-        },
+        where: { constructorId },
         orderBy: { driverId: 'asc' },
       });
-      const recentDriverIds = grouped.map((r) => r.driverId);
-      const recentDrivers = recentDriverIds.length
-        ? await prisma.driver.findMany({ where: { driverId: { in: recentDriverIds } } })
+      const driverIds = driverGroups.map((r) => r.driverId);
+      const drivers = driverIds.length
+        ? await prisma.driver.findMany({ where: { driverId: { in: driverIds } } })
         : [];
 
+      // ── Active season range (via Race model to avoid RaceResult include conflict) ─
+
+      const [firstRace, lastRace] = await Promise.all([
+        prisma.race.findFirst({
+          where: { results: { some: { constructorId } } },
+          orderBy: { seasonYear: 'asc' },
+          select: { seasonYear: true },
+        }),
+        prisma.race.findFirst({
+          where: { results: { some: { constructorId } } },
+          orderBy: { seasonYear: 'desc' },
+          select: { seasonYear: true },
+        }),
+      ]);
+
       return {
-        id: constructor.constructorId,
-        name: constructor.name,
-        nationality: constructor.nationality,
-        championshipYears,
-        recentDrivers: recentDrivers.map(mapDriverRef),
+        id: ctor.constructorId,
+        name: ctor.name,
+        nationality: ctor.nationality,
+        totalChampionships: championshipSeasons.length,
+        totalWins,
+        firstSeason: firstRace?.seasonYear ?? null,
+        lastSeason: lastRace?.seasonYear ?? null,
+        championships: driverChampionships,
+        drivers: drivers.map(mapDriverRef),
       };
     });
 

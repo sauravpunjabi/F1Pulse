@@ -66,6 +66,14 @@ export function LenisProvider({ children }: { children: ReactNode }) {
     // This is the only lenis.on('scroll', …) handler we register.
     instance.on('scroll', ScrollTrigger.update);
 
+    // Recalculate scroll height whenever the document body changes size.
+    // Without this, Lenis caches the scroll height at init time (when async
+    // content is still in loading state / short), and gets stuck once sections
+    // expand after data loads. The native `resize` event only fires on viewport
+    // changes, not on content-height changes, so we need ResizeObserver here.
+    const ro = new ResizeObserver(() => instance.resize());
+    ro.observe(document.body);
+
     setLenis(instance);
 
     // ── Reduced-motion: disable smooth scroll, keep native behaviour ───────
@@ -79,6 +87,7 @@ export function LenisProvider({ children }: { children: ReactNode }) {
     mq.addEventListener('change', handleMq);
 
     return () => {
+      ro.disconnect();
       gsap.ticker.remove(tickerHandler);
       instance.off('scroll', ScrollTrigger.update);
       mq.removeEventListener('change', handleMq);

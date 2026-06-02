@@ -219,6 +219,36 @@ export interface DriverWinDto {
 
 export type DriverWinsDto = DriverWinDto[];
 
+export interface ChampionshipEntry {
+  year: number;
+  driverId: string;
+  driverName: string;
+  driverCode: string | null;
+  points: number;
+}
+
+export interface ConstructorProfileDto {
+  id: string;
+  name: string;
+  nationality: string | null;
+  totalChampionships: number;
+  totalWins: number;
+  firstSeason: number | null;
+  lastSeason: number | null;
+  championships: ChampionshipEntry[];
+  drivers: DriverRef[];
+}
+
+export interface ConstructorListItemDto {
+  id: string;
+  name: string;
+  nationality: string | null;
+  totalChampionships: number;
+  totalWins: number;
+}
+
+export type ConstructorsListDto = ConstructorListItemDto[];
+
 /** Live status — mirrors apps/server/src/live/types.ts */
 export type WeekendStatus =
   | 'off-season'
@@ -278,6 +308,12 @@ export const fetchDriverSeasons = (driverId: string) =>
 export const fetchDriverWins = (driverId: string) =>
   apiFetch<DriverWinsDto>(`/api/driver/${driverId}/wins`);
 
+export const fetchConstructorProfile = (constructorId: string) =>
+  apiFetch<ConstructorProfileDto>(`/api/constructor/${constructorId}`);
+
+export const fetchConstructorsList = () =>
+  apiFetch<ConstructorsListDto>('/api/constructors');
+
 // ── React Query keys ──────────────────────────────────────────────────────────
 
 export const queryKeys = {
@@ -290,6 +326,8 @@ export const queryKeys = {
   driverProfile:          (id: string) => ['driver', id] as const,
   driverSeasons:          (id: string) => ['driver', id, 'seasons'] as const,
   driverWins:             (id: string) => ['driver', id, 'wins'] as const,
+  constructorProfile:     (id: string) => ['constructor', id] as const,
+  constructorsList:       ['constructors', 'list'] as const,
 } as const;
 
 // ── React Query hooks ─────────────────────────────────────────────────────────
@@ -373,6 +411,23 @@ export function useDriverWins(driverId: string): UseQueryResult<DriverWinsDto> {
     queryFn:  () => fetchDriverWins(driverId),
     staleTime: 24 * 60 * 60 * 1000, // historical wins don't change
     enabled: !!driverId,
+  });
+}
+
+export function useConstructorProfile(constructorId: string): UseQueryResult<ConstructorProfileDto> {
+  return useQuery({
+    queryKey: queryKeys.constructorProfile(constructorId),
+    queryFn:  () => fetchConstructorProfile(constructorId),
+    staleTime: 5 * 60 * 1000,
+    enabled: !!constructorId,
+  });
+}
+
+export function useConstructorsList(): UseQueryResult<ConstructorsListDto> {
+  return useQuery({
+    queryKey: queryKeys.constructorsList,
+    queryFn:  fetchConstructorsList,
+    staleTime: 5 * 60 * 1000,
   });
 }
 

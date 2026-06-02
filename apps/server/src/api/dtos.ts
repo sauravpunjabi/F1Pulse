@@ -188,13 +188,35 @@ export interface DriverProfileDto {
   stats: DriverStatsDto;
 }
 
+export interface ChampionshipEntry {
+  year: number;
+  driverId: string;
+  driverName: string;
+  driverCode: string | null;
+  points: number;
+}
+
 export interface ConstructorProfileDto {
   id: string;
   name: string;
   nationality: string | null;
-  championshipYears: number[];
-  recentDrivers: DriverRef[];
+  totalChampionships: number;
+  totalWins: number;
+  firstSeason: number | null;
+  lastSeason: number | null;
+  championships: ChampionshipEntry[];
+  drivers: DriverRef[];
 }
+
+export interface ConstructorListItemDto {
+  id: string;
+  name: string;
+  nationality: string | null;
+  totalChampionships: number;
+  totalWins: number;
+}
+
+export type ConstructorsListDto = ConstructorListItemDto[];
 
 export interface SeasonChampionDto {
   season: number;
