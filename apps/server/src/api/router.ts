@@ -17,6 +17,8 @@ import { constructorsRouter } from './routes/constructors.js';
 import { historyRouter } from './routes/history.js';
 import { eraRouter } from './routes/era.js';
 import { liveRouter } from './routes/live.js';
+import { circuitRouter } from './routes/circuit.js';
+import { circuitsRouter } from './routes/circuits.js';
 import { triggerIngestNow } from '../jobs/ingest-scheduler.js';
 
 const api = Router();
@@ -32,6 +34,8 @@ api.use('/constructors', constructorsRouter);
 api.use('/history', historyRouter);
 api.use('/era', eraRouter);
 api.use('/live', liveRouter);
+api.use('/circuit', circuitRouter);
+api.use('/circuits', circuitsRouter);
 
 // ── Admin: cache purge ────────────────────────────────────────────────────────
 

@@ -218,6 +218,51 @@ export interface ConstructorListItemDto {
 
 export type ConstructorsListDto = ConstructorListItemDto[];
 
+// ── Circuit DTOs ───────────────────────────────────────────────────────────────
+
+export interface CircuitRaceDto {
+  season: number;
+  round: number;
+  raceName: string;
+  winnerGivenName: string;
+  winnerFamilyName: string;
+  winnerDriverId: string;
+  constructorName: string;
+  constructorId: string;
+}
+
+export interface CircuitWinnerDto {
+  driverId: string;
+  givenName: string;
+  familyName: string;
+  wins: number;
+}
+
+export interface CircuitProfileDto {
+  id: string;
+  name: string;
+  locality: string | null;
+  country: string | null;
+  lat: number | null;
+  lng: number | null;
+  firstRaceYear: number;
+  totalRaces: number;
+  recentRaces: CircuitRaceDto[];
+  mostWins: CircuitWinnerDto | null;
+  eras: string[];
+}
+
+export interface CircuitListItemDto {
+  id: string;
+  name: string;
+  locality: string | null;
+  country: string | null;
+  firstRaceYear: number;
+  totalRaces: number;
+}
+
+export type CircuitsListDto = CircuitListItemDto[];
+
 export interface SeasonChampionDto {
   season: number;
   driver: DriverRef;

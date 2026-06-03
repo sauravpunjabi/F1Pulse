@@ -256,6 +256,51 @@ export interface ConstructorListItemDto {
 
 export type ConstructorsListDto = ConstructorListItemDto[];
 
+// ── Circuit DTOs ──────────────────────────────────────────────────────────────
+
+export interface CircuitRaceDto {
+  season: number;
+  round: number;
+  raceName: string;
+  winnerGivenName: string;
+  winnerFamilyName: string;
+  winnerDriverId: string;
+  constructorName: string;
+  constructorId: string;
+}
+
+export interface CircuitWinnerDto {
+  driverId: string;
+  givenName: string;
+  familyName: string;
+  wins: number;
+}
+
+export interface CircuitProfileDto {
+  id: string;
+  name: string;
+  locality: string | null;
+  country: string | null;
+  lat: number | null;
+  lng: number | null;
+  firstRaceYear: number;
+  totalRaces: number;
+  recentRaces: CircuitRaceDto[];
+  mostWins: CircuitWinnerDto | null;
+  eras: string[];
+}
+
+export interface CircuitListItemDto {
+  id: string;
+  name: string;
+  locality: string | null;
+  country: string | null;
+  firstRaceYear: number;
+  totalRaces: number;
+}
+
+export type CircuitsListDto = CircuitListItemDto[];
+
 /** Live status — mirrors apps/server/src/live/types.ts */
 export type WeekendStatus =
   | 'off-season'
@@ -330,6 +375,12 @@ export const fetchConstructorsList = () =>
 export const fetchRoundResults = (season: number, round: number) =>
   apiFetch<RoundResultsDto>(`/api/results/${season}/${round}`);
 
+export const fetchCircuitProfile = (circuitId: string) =>
+  apiFetch<CircuitProfileDto>(`/api/circuit/${circuitId}`);
+
+export const fetchCircuitsList = () =>
+  apiFetch<CircuitsListDto>('/api/circuits');
+
 // ── React Query keys ──────────────────────────────────────────────────────────
 
 export const queryKeys = {
@@ -347,6 +398,8 @@ export const queryKeys = {
   constructorProfile:     (id: string) => ['constructor', id] as const,
   constructorsList:       ['constructors', 'list'] as const,
   roundResults:           (season: number, round: number) => ['results', season, round] as const,
+  circuitProfile:         (id: string) => ['circuit', id] as const,
+  circuitsList:           ['circuits', 'list'] as const,
 } as const;
 
 // ── React Query hooks ─────────────────────────────────────────────────────────
@@ -474,6 +527,23 @@ export function useRoundResults(season: number, round: number): UseQueryResult<R
     queryFn:  () => fetchRoundResults(season, round),
     staleTime: 24 * 60 * 60 * 1000,
     enabled:  season > 0 && round > 0,
+  });
+}
+
+export function useCircuitProfile(circuitId: string): UseQueryResult<CircuitProfileDto> {
+  return useQuery({
+    queryKey: queryKeys.circuitProfile(circuitId),
+    queryFn:  () => fetchCircuitProfile(circuitId),
+    staleTime: 24 * 60 * 60 * 1000, // historical — circuits don't change
+    enabled: !!circuitId,
+  });
+}
+
+export function useCircuitsList(): UseQueryResult<CircuitsListDto> {
+  return useQuery({
+    queryKey: queryKeys.circuitsList,
+    queryFn:  fetchCircuitsList,
+    staleTime: 24 * 60 * 60 * 1000,
   });
 }
 

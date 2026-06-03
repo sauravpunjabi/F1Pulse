@@ -17,6 +17,7 @@
  */
 
 import { useEffect, useRef, type ReactNode } from 'react';
+import Link from 'next/link';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { MaskReveal } from '@/components/primitives/MaskReveal';
@@ -38,6 +39,10 @@ export interface IconicMomentProps {
   imageSrc: string;
   /** Image alt text */
   imageAlt: string;
+  /** Ergast circuitId — links the moment to its circuit page. Optional. */
+  circuitId?: string;
+  /** Human-readable circuit name shown next to the year label. */
+  circuitName?: string;
   /** Scroll distance the section is pinned for. Default 700. */
   pinDuration?: number;
 }
@@ -49,6 +54,8 @@ export function IconicMoment({
   stat,
   imageSrc,
   imageAlt,
+  circuitId,
+  circuitName,
   pinDuration = 700,
 }: IconicMomentProps) {
   const sectionRef = useRef<HTMLElement>(null);
@@ -103,7 +110,7 @@ export function IconicMoment({
           {year}
         </div>
 
-        {/* Label: year + ordinal marker */}
+        {/* Label: year + divider + optional circuit link */}
         <div className="mb-6 flex items-center gap-4">
           <span
             className="font-mono text-[0.5rem] font-bold tabular-nums"
@@ -112,6 +119,14 @@ export function IconicMoment({
             {year}
           </span>
           <div className="h-px flex-1 bg-white/10" />
+          {circuitId && circuitName && (
+            <Link
+              href={`/circuit/${circuitId}`}
+              className="font-mono text-[0.48rem] uppercase tracking-[0.25em] text-white/30 transition-opacity hover:text-white/60"
+            >
+              {circuitName} ↗
+            </Link>
+          )}
         </div>
 
         {/* Title via MaskReveal */}

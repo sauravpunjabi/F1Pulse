@@ -54,6 +54,8 @@ export function IconicMomentsSection() {
         narrative=""
         imageSrc="https://placehold.co/1600x900/0c0c0d/222226"
         imageAlt="Juan Manuel Fangio German Grand Prix Nürburgring 1957"
+        circuitId="nurburgring"
+        circuitName="Nürburgring"
         stat={
           champion1957 ? (
             <ChampionStat champion={champion1957} />
@@ -68,6 +70,8 @@ export function IconicMomentsSection() {
         narrative=""
         imageSrc="https://placehold.co/1600x900/0c0c0d/222226"
         imageAlt="Niki Lauda Nürburgring crash 1976 and comeback"
+        circuitId="nurburgring"
+        circuitName="Nürburgring"
         stat={
           champion1976 ? (
             <div className="flex items-start gap-8">
@@ -89,6 +93,8 @@ export function IconicMomentsSection() {
         narrative=""
         imageSrc="https://placehold.co/1600x900/0c0c0d/222226"
         imageAlt="Ayrton Senna San Marino Grand Prix Imola 1994"
+        circuitId="imola"
+        circuitName="Imola"
         stat={
           champion1994 ? (
             <ChampionStat champion={champion1994} />
@@ -103,6 +109,8 @@ export function IconicMomentsSection() {
         narrative=""
         imageSrc="https://placehold.co/1600x900/0c0c0d/222226"
         imageAlt="Schumacher Barrichello German Grand Prix Hockenheim 2002 team orders"
+        circuitId="hockenheimring"
+        circuitName="Hockenheim"
         stat={
           winner2002 && p2_2002 ? (
             <div className="flex flex-col gap-3">
@@ -126,6 +134,8 @@ export function IconicMomentsSection() {
         narrative=""
         imageSrc="https://placehold.co/1600x900/0c0c0d/222226"
         imageAlt="Kimi Räikkönen 2007 Brazilian Grand Prix World Championship"
+        circuitId="interlagos"
+        circuitName="Interlagos"
         stat={
           champion2007 ? (
             <ChampionStat champion={champion2007} />
@@ -140,6 +150,8 @@ export function IconicMomentsSection() {
         narrative=""
         imageSrc="https://placehold.co/1600x900/0c0c0d/222226"
         imageAlt="Brawn GP Jenson Button 2009 World Championship"
+        circuitId="albert_park"
+        circuitName="Albert Park"
         stat={
           champion2009 ? (
             <div className="flex items-start gap-8">
@@ -161,6 +173,8 @@ export function IconicMomentsSection() {
         narrative=""
         imageSrc="https://placehold.co/1600x900/0c0c0d/222226"
         imageAlt="Lewis Hamilton seventh World Championship 2020"
+        circuitId="istanbul"
+        circuitName="Istanbul Park"
         stat={
           hamilton ? (
             <div className="flex items-start gap-8">
@@ -179,6 +193,8 @@ export function IconicMomentsSection() {
         narrative=""
         imageSrc="https://placehold.co/1600x900/0c0c0d/222226"
         imageAlt="Romain Grosjean Bahrain Grand Prix 2020 fire escape"
+        circuitId="bahrain"
+        circuitName="Bahrain"
         stat={null}
       />
 
@@ -189,6 +205,8 @@ export function IconicMomentsSection() {
         narrative=""
         imageSrc="https://placehold.co/1600x900/0c0c0d/222226"
         imageAlt="Abu Dhabi Grand Prix 2021 final lap championship"
+        circuitId="yas_marina"
+        circuitName="Yas Marina"
         stat={
           champion2021 ? (
             <ChampionStat champion={champion2021} />
@@ -203,6 +221,8 @@ export function IconicMomentsSection() {
         narrative=""
         imageSrc="https://placehold.co/1600x900/0c0c0d/222226"
         imageAlt="Lewis Hamilton Brazilian Grand Prix 2008 championship final lap"
+        circuitId="interlagos"
+        circuitName="Interlagos"
         stat={
           champion2008 ? (
             <div className="flex items-start gap-8">

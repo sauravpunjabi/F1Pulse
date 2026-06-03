@@ -6,8 +6,10 @@
  * DONE / NEXT / UPCOMING computed client-side against real Date.now().
  * "Next" is the first round whose date is today or later.
  * Status exposed via data-status + class hooks for the art director.
+ * Circuit name links to /circuit/[circuitId].
  */
 
+import Link from 'next/link';
 import type { UseQueryResult } from '@tanstack/react-query';
 import type { ScheduleDto } from '@/lib/api';
 import type { Tempo } from './adaptive';
@@ -111,9 +113,13 @@ export function SeasonCalendar({
                   >
                     {race.name}
                   </p>
-                  <p className="truncate font-mono text-xs text-silver">
+                  <Link
+                    href={`/circuit/${race.circuit.id}`}
+                    className="truncate font-mono text-xs text-silver transition-opacity hover:opacity-60"
+                    tabIndex={0}
+                  >
                     {race.circuit.name}{location ? ` · ${location}` : ''}
-                  </p>
+                  </Link>
                 </div>
 
                 {/* Date + status badge */}
