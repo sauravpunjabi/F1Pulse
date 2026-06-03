@@ -375,6 +375,9 @@ export const fetchConstructorsList = () =>
 export const fetchRoundResults = (season: number, round: number) =>
   apiFetch<RoundResultsDto>(`/api/results/${season}/${round}`);
 
+export const fetchLatestResults = () =>
+  apiFetch<RoundResultsDto>('/api/results/current/latest');
+
 export const fetchCircuitProfile = (circuitId: string) =>
   apiFetch<CircuitProfileDto>(`/api/circuit/${circuitId}`);
 
@@ -398,6 +401,7 @@ export const queryKeys = {
   constructorProfile:     (id: string) => ['constructor', id] as const,
   constructorsList:       ['constructors', 'list'] as const,
   roundResults:           (season: number, round: number) => ['results', season, round] as const,
+  latestResults:          ['results', 'current', 'latest'] as const,
   circuitProfile:         (id: string) => ['circuit', id] as const,
   circuitsList:           ['circuits', 'list'] as const,
 } as const;
@@ -527,6 +531,14 @@ export function useRoundResults(season: number, round: number): UseQueryResult<R
     queryFn:  () => fetchRoundResults(season, round),
     staleTime: 24 * 60 * 60 * 1000,
     enabled:  season > 0 && round > 0,
+  });
+}
+
+export function useLatestResults(): UseQueryResult<RoundResultsDto> {
+  return useQuery({
+    queryKey: queryKeys.latestResults,
+    queryFn:  fetchLatestResults,
+    staleTime: 5 * 60 * 1000,
   });
 }
 

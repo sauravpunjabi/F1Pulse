@@ -21,6 +21,7 @@ import { DriverIdentityLine } from '@/components/driver/DriverIdentityLine';
 import { DriverTimeline } from '@/components/driver/DriverTimeline';
 import { DriverStats } from '@/components/driver/DriverStats';
 import { DriverEraContext } from '@/components/driver/DriverEraContext';
+import { DriverRivalries } from '@/components/driver/DriverRivalries';
 
 interface PageProps {
   params: { driverId: string };
@@ -95,6 +96,12 @@ export default function DriverPage({ params }: PageProps) {
 
       {/* 5 — Era context */}
       <DriverEraContext career={driver.career} />
+
+      {/* Divider */}
+      <div className="mx-6 border-t border-white/10 md:mx-16" aria-hidden="true" />
+
+      {/* 6 — Rivalry links (only rendered if driver has a rivalry entry) */}
+      <DriverRivalries driverId={driverId} />
     </main>
   );
 }
