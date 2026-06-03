@@ -33,20 +33,11 @@
   --accent-dim:      var(--color-red-dim);
 
   /* ── Typography — font families ───────────────────────────────────────────── */
-  /* TODO: Replace with chosen display face (editorial serif, variable optical-
-     size font, or custom). Good candidates: "Freight Display", "Canela",
-     "Neue Haas Grotesk Display", "Editorial New". Drop the @font-face or
-     Google Fonts import above this block and point --font-display at it.      */
-  --font-display: 'Georgia', serif;          /* TODO: cinematic display face */
-
-  /* TODO: Replace with chosen body face. Candidates: "Inter", "Söhne",
-     "Aktiv Grotesk", "DM Sans", "Graphik". Must be clean at 13–15px on
-     dark backgrounds.                                                          */
-  --font-sans:    system-ui, sans-serif;     /* TODO: body / UI face */
-
-  /* TODO: For timing data, lap deltas, positions. Candidates: "JetBrains Mono",
-     "IBM Plex Mono", "Departure Mono".                                         */
-  --font-mono:    'Courier New', monospace;  /* TODO: mono / telemetry face */
+  /* --font-display and --font-mono are injected by next/font in layout.tsx.
+     Fallbacks here fire only if the CSS variable is not yet resolved.          */
+  --font-display: 'Saira Condensed', 'Arial Narrow', sans-serif;
+  --font-sans:    system-ui, -apple-system, sans-serif;
+  --font-mono:    'JetBrains Mono', 'Courier New', monospace;
 
   /* ── Motion duration presets ──────────────────────────────────────────────── */
   /* TODO: Tune these once the first motion sequences are choreographed.
@@ -67,9 +58,9 @@
   /* TODO: Dial these in during visual polish. Grain is intentionally subtle —
      if you can see it at arm's length it's too strong. Vignette should
      deepen the frame without feeling like a filter.                             */
-  --grain-opacity:    0.035;  /* TODO: target range 0.02–0.06 */
-  --vignette-opacity: 0.55;   /* TODO: target range 0.4–0.7 */
-  --vignette-spread:  55%;    /* TODO: how far the vignette reaches inward */
+  --grain-opacity:    0.04;
+  --vignette-opacity: 0.32;   /* reduced from 0.55 — was killing text near edges */
+  --vignette-spread:  65%;    /* wider spread = softer falloff */
 
   /* ── Z-index scale ────────────────────────────────────────────────────────── */
   --z-base:       0;
@@ -127,4 +118,23 @@ html {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* ── History Mode ────────────────────────────────────────────────────────────── */
+/* Projector flicker — irregular opacity pulse simulating a film projector.
+   Amplitude is intentionally tiny so it reads as atmosphere, not distraction. */
+@keyframes projector-flicker {
+  0%,  100% { opacity: 0;     }
+  7%         { opacity: 0.022; }
+  14%        { opacity: 0;     }
+  41%        { opacity: 0.011; }
+  56%        { opacity: 0;     }
+  78%        { opacity: 0.018; }
+  89%        { opacity: 0;     }
+}
+
+/* Scanline drift — very slow vertical slide keeps the lines from feeling static */
+@keyframes scanline-drift {
+  from { background-position: 0 0; }
+  to   { background-position: 0 4px; }
 }

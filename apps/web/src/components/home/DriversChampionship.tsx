@@ -43,6 +43,7 @@ export function DriversChampionship({
   return (
     <StandingsSection
       title="Drivers' Championship"
+      sectionIndex="02"
       tempo={tempo}
       status={status}
       rows={rows}

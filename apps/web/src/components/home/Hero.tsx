@@ -1,25 +1,5 @@
 'use client';
 
-/**
- * <Hero> — the opening frame of the homepage, revealed when the loader wipes.
- *
- * Composed entirely from real API data + the motion primitives:
- *   - Oversized title via <MaskReveal> (cinematic)
- *   - Current season label in mono            (/api/season/current)
- *   - Next-race strip + ticking countdown     (/api/season/current → nextRace)
- *   - Championship leader: name / points / wins (/api/standings/drivers)
- *   - <TelemetryLine> motif along the bottom
- *
- * The hero's entrance is gated on `revealed` (set when the loader's wipe
- * begins) so the title's cinematic mask plays as the curtain lifts — not while
- * it's still hidden behind the loader. Before `revealed`, only the atmospheric
- * backdrop shows through.
- *
- * `tempo` scaffolds the adaptive state: when 'live' the next-race ticker is
- * marked prominent and the telemetry motif draws faster. The art director
- * applies the actual visual divergence via the data-tempo / class hooks.
- */
-
 import type { UseQueryResult } from '@tanstack/react-query';
 import type { RaceScheduleDto, SeasonCurrentDto, StandingsDto } from '@/lib/api';
 import type { Tempo } from './adaptive';
@@ -38,37 +18,34 @@ export function Hero({ season, drivers, revealed, tempo }: HeroProps) {
 
   return (
     <section
-      className="home-hero relative flex min-h-dvh flex-col justify-center overflow-hidden px-6 py-24 sm:px-10 lg:px-16"
+      className="home-hero relative flex min-h-dvh flex-col justify-center overflow-hidden px-6 py-24 sm:px-10 lg:px-20"
       data-tempo={tempo}
     >
-      {/* Entrance is gated on the loader's wipe to keep the choreography ordered. */}
       {revealed && (
-        <div className="relative z-10 flex max-w-5xl flex-col gap-8">
-          {/* ── Season label (mono) ──────────────────────────────────────── */}
+        <div className="relative z-10 flex max-w-6xl flex-col gap-10">
+
+          {/* ── Section index + season label ────────────────────────────── */}
           <MaskReveal trigger="mount" preset="measured" delay={0.05} direction="left">
-            <p className="font-mono text-xs uppercase tracking-[0.45em] text-silver">
-              {season.isError ? (
-                'Season unavailable'
-              ) : season.data ? (
-                <>
-                  Season{' '}
-                  <span className="tabular-nums text-off-white">{season.data.year}</span>
-                </>
-              ) : (
-                'Season'
-              )}
+            <p className="font-mono text-[0.65rem] uppercase tracking-[0.45em] text-accent">
+              01 /{' '}
+              <span className="text-silver">
+                {season.data ? `Season ${season.data.year}` : 'Season'}
+              </span>
             </p>
           </MaskReveal>
 
-          {/* ── Oversized title ──────────────────────────────────────────── */}
-          <MaskReveal trigger="mount" preset="cinematic" delay={0.15} direction="left">
-            <h1 className="font-display text-6xl font-semibold leading-[0.92] tracking-tight text-off-white sm:text-8xl lg:text-[10rem]">
+          {/* ── Oversized hero title ─────────────────────────────────────── */}
+          <MaskReveal trigger="mount" preset="cinematic" delay={0.12} direction="left">
+            <h1
+              className="font-display font-black uppercase leading-[0.88] tracking-tight text-off-white"
+              style={{ fontSize: 'clamp(80px, 15vw, 220px)' }}
+            >
               F1Pulse
             </h1>
           </MaskReveal>
 
-          {/* ── Next-race strip + countdown ──────────────────────────────── */}
-          <MaskReveal trigger="mount" preset="measured" delay={0.35} direction="left">
+          {/* ── Next-race strip ──────────────────────────────────────────── */}
+          <MaskReveal trigger="mount" preset="measured" delay={0.3} direction="left">
             <NextRaceStrip
               race={season.data?.nextRace ?? null}
               isError={season.isError}
@@ -77,20 +54,19 @@ export function Hero({ season, drivers, revealed, tempo }: HeroProps) {
           </MaskReveal>
 
           {/* ── Championship leader ──────────────────────────────────────── */}
-          <MaskReveal trigger="mount" preset="measured" delay={0.5} direction="left">
+          <MaskReveal trigger="mount" preset="measured" delay={0.45} direction="left">
             <LeaderStrip leader={leader} isError={drivers.isError} />
           </MaskReveal>
         </div>
       )}
 
-      {/* ── Telemetry motif along the bottom ───────────────────────────────
-          Adaptive: draws faster when a session is live. */}
+      {/* Telemetry motif along the bottom */}
       {revealed && (
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 px-6 pb-8 sm:px-10 lg:px-16">
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 px-6 pb-8 sm:px-10 lg:px-20">
           <TelemetryLine
             trigger="mount"
             speed={tempo === 'live' ? 'sharp' : 'cinematic'}
-            className="h-12 w-full opacity-70 sm:h-16"
+            className="h-12 w-full opacity-50 sm:h-16"
           />
         </div>
       )}
@@ -98,7 +74,7 @@ export function Hero({ season, drivers, revealed, tempo }: HeroProps) {
   );
 }
 
-// ── Next-race strip ───────────────────────────────────────────────────────
+// ── Next-race strip ───────────────────────────────────────────────────────────
 
 function NextRaceStrip({
   race,
@@ -112,41 +88,27 @@ function NextRaceStrip({
   const countdown = useCountdown(race?.date);
 
   if (isError) {
-    return (
-      <p className="font-mono text-sm text-silver">
-        Next race unavailable — can&apos;t reach the schedule feed.
-      </p>
-    );
+    return <p className="font-mono text-sm text-silver">Next race unavailable.</p>;
   }
-
   if (!race) {
-    // Honest empty: season over / nothing scheduled. Never fabricated.
     return <p className="font-mono text-sm text-silver">No upcoming race scheduled.</p>;
   }
 
   const location = [race.circuit.locality, race.circuit.country].filter(Boolean).join(', ');
 
   return (
-    <div
-      // data-prominent is the art-director hook for the "ticker more prominent
-      // when live" requirement.
-      className="home-next-race flex flex-col gap-3"
-      data-tempo={tempo}
-      data-prominent={tempo === 'live' || undefined}
-    >
+    <div className="flex flex-col gap-3" data-tempo={tempo}>
       <div className="flex flex-col gap-1">
         <p className="font-mono text-[0.65rem] uppercase tracking-[0.35em] text-silver">
           Next Race · Round {race.round}
         </p>
-        <p className="font-sans text-xl font-medium text-off-white sm:text-2xl">
+        <p className="font-display text-3xl font-bold uppercase text-off-white sm:text-4xl">
           {race.name}
         </p>
         <p className="font-mono text-xs text-silver">
-          {race.circuit.name}
-          {location ? ` · ${location}` : ''}
+          {race.circuit.name}{location ? ` · ${location}` : ''}
         </p>
       </div>
-
       <CountdownReadout countdown={countdown} dateIso={race.date} />
     </div>
   );
@@ -167,21 +129,17 @@ function CountdownReadout({
     timeZone: 'UTC',
   });
 
-  // Before the first client tick, show the date alone (avoids hydration drift).
   if (!countdown) {
-    return <p className="font-mono text-xs tabular-nums text-steel">{dateLabel}</p>;
+    return <p className="font-mono text-xs tabular-nums text-silver">{dateLabel}</p>;
   }
-
   if (countdown.isPast) {
     return (
-      <p className="font-mono text-sm uppercase tracking-[0.2em] text-off-white">
-        Lights out
-      </p>
+      <p className="font-mono text-sm uppercase tracking-[0.2em] text-off-white">Lights out</p>
     );
   }
 
   return (
-    <div className="home-countdown flex items-end gap-4" aria-label={`Countdown to ${dateLabel}`}>
+    <div className="flex items-end gap-5" aria-label={`Countdown to ${dateLabel}`}>
       <Unit value={countdown.days} label="days" />
       <Unit value={countdown.hours} label="hrs" pad />
       <Unit value={countdown.minutes} label="min" pad />
@@ -193,16 +151,14 @@ function CountdownReadout({
 function Unit({ value, label, pad = false }: { value: number; label: string; pad?: boolean }) {
   const shown = pad ? String(value).padStart(2, '0') : String(value);
   return (
-    <div className="flex flex-col items-center">
-      <span className="font-mono text-2xl tabular-nums text-off-white sm:text-3xl">{shown}</span>
-      <span className="font-mono text-[0.6rem] uppercase tracking-[0.25em] text-silver">
-        {label}
-      </span>
+    <div className="flex flex-col items-center gap-0.5">
+      <span className="font-mono text-3xl tabular-nums text-off-white sm:text-4xl">{shown}</span>
+      <span className="font-mono text-[0.58rem] uppercase tracking-[0.28em] text-silver">{label}</span>
     </div>
   );
 }
 
-// ── Championship leader strip ─────────────────────────────────────────────
+// ── Championship leader strip ─────────────────────────────────────────────────
 
 function LeaderStrip({
   leader,
@@ -212,13 +168,8 @@ function LeaderStrip({
   isError: boolean;
 }) {
   if (isError) {
-    return (
-      <p className="font-mono text-sm text-silver">
-        Championship leader unavailable — can&apos;t reach the standings feed.
-      </p>
-    );
+    return <p className="font-mono text-sm text-silver">Championship leader unavailable.</p>;
   }
-
   if (!leader) {
     return <p className="font-mono text-sm text-silver">No standings yet this season.</p>;
   }
@@ -226,11 +177,12 @@ function LeaderStrip({
   const team = leader.constructors.map((c) => c.name).join(', ');
 
   return (
-    <div className="home-leader flex flex-col gap-1">
+    <div className="flex flex-col gap-1 border-l-2 border-accent pl-4">
       <p className="font-mono text-[0.65rem] uppercase tracking-[0.35em] text-silver">
         Championship Leader
       </p>
-      <p className="font-sans text-xl font-medium text-off-white sm:text-2xl">
+      {/* Leader name in red — the data point that matters most */}
+      <p className="font-display text-4xl font-black uppercase text-accent sm:text-5xl">
         {leader.driver.givenName} {leader.driver.familyName}
       </p>
       <p className="font-mono text-xs tabular-nums text-silver">

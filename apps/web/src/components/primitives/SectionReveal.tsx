@@ -3,23 +3,14 @@
 /**
  * <SectionReveal>
  *
- * Wraps a list or group of elements and staggers their entrance when the
- * container scrolls into view. Each direct child is wrapped in a motion.div
- * that plays fadeUp (opacity 0→1, y 24→0) with the `measured` preset.
+ * Staggers children's entrance when the container enters the viewport.
+ * Each direct child gets fadeUp (opacity 0→1, y 24→0) with `measured` preset.
  *
- * Note: wrapping children in a div may affect flex/grid layout. Pass
- * className to the container and set children as items that don't depend
- * on being direct children of a specific parent.
- *
- * Props:
- *   staggerDelay — seconds between each child's entrance (default 0.06)
- *   preset       — motion preset for each child (default 'measured')
- *   distance     — y travel distance in px (default 24)
- *   once         — replay on re-entry (default true = play once)
- *   className    — applied to the stagger container div
+ * 3-second fallback: force-reveals when IO hasn't fired — prevents rows from
+ * staying permanently hidden on short/wide viewports or full-page screenshots.
  */
 
-import React, { useRef, type ReactNode } from 'react';
+import React, { useEffect, useRef, useState, type ReactNode } from 'react';
 import { motion, useInView } from 'framer-motion';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { staggerContainerVariants, fadeUpVariants, type MotionPreset } from '@/lib/motion';
@@ -43,11 +34,17 @@ export function SectionReveal({
 }: SectionRevealProps) {
   const reduced = useReducedMotion();
   const ref = useRef<HTMLDivElement>(null);
-  const inView = useInView(ref, { once, amount: 0.15 });
+  const inView = useInView(ref, { once, amount: 0 });
 
+  const [forceReveal, setForceReveal] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setForceReveal(true), 3000);
+    return () => clearTimeout(t);
+  }, []);
+
+  const shouldReveal = inView || forceReveal;
   const childVariants = fadeUpVariants(preset, distance);
 
-  // Reduced motion: render without animation wrappers
   if (reduced) {
     return (
       <div ref={ref} className={className}>
@@ -64,7 +61,7 @@ export function SectionReveal({
       className={className}
       variants={staggerContainerVariants(staggerDelay)}
       initial="hidden"
-      animate={inView ? 'visible' : 'hidden'}
+      animate={shouldReveal ? 'visible' : 'hidden'}
     >
       {childArray.map((child, i) => (
         <motion.div key={i} variants={childVariants}>

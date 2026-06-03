@@ -3,21 +3,18 @@
 /**
  * <StandingsSection> — shared presentational list for both championships.
  *
- * Drivers and Constructors map their DTOs to a common StandingRowData shape
- * and render through this one component, so the motion + layout stay identical.
+ * Single IntersectionObserver on the rows container — all rows stagger
+ * via Framer Motion variants driven by that single IO.
  *
- * Animation architecture — one IntersectionObserver for the whole rows block:
- *   - A single useInView ref on the rows container replaces the previous
- *     per-row MaskReveal (20 IOs) + per-GapBar whileInView (20 IOs).
- *   - All 20 rows stagger via Framer Motion variants driven by that single IO.
- *   - GapBar receives inView as a prop; it animates on the same trigger.
- *   - CountUp still has its own IO (lightweight; runs once after reveal).
- *
- * The leader row carries `data-leader` + the `home-standings-row--leader`
- * class hook — visually distinct styling is left to the art director.
+ * Visual spec:
+ *   - Driver/constructor name: font-display, 24px+
+ *   - Row min-height: 64px
+ *   - Leader row: 2px red left border + name in accent colour
+ *   - Border between rows: #222226 solid (not opacity-dimmed)
+ *   - Section index label in accent red
  */
 
-import { useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion, useInView } from 'framer-motion';
 import type { Tempo } from './adaptive';
 import { CountUp, ScanlineReveal } from '@/components/primitives';
@@ -45,10 +42,10 @@ export interface StandingRowData {
 
 export interface StandingsSectionProps {
   title: string;
+  sectionIndex: string; // e.g. "02"
   tempo: Tempo;
   status: SectionStatus;
   rows: StandingRowData[];
-  /** Highest points in the table — denominator for the gap bars. */
   leaderPoints: number;
   errorLabel: string;
   emptyLabel: string;
@@ -59,6 +56,7 @@ const rowVariants = fadeUpVariants('measured', 16);
 
 export function StandingsSection({
   title,
+  sectionIndex,
   tempo,
   status,
   rows,
@@ -66,24 +64,34 @@ export function StandingsSection({
   errorLabel,
   emptyLabel,
 }: StandingsSectionProps) {
-  // Single IO for all rows — fires once when the top of the list enters view.
   const containerRef = useRef<HTMLDivElement>(null);
-  const inView = useInView(containerRef, { once: true, amount: 0.1 });
+  const inView = useInView(containerRef, { once: true, amount: 0 });
+
+  const [forceReveal, setForceReveal] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setForceReveal(true), 3000);
+    return () => clearTimeout(t);
+  }, []);
+
+  const shouldReveal = inView || forceReveal;
 
   return (
     <section
-      className="home-standings px-6 py-20 sm:px-10 sm:py-28 lg:px-16"
+      className="home-standings px-6 py-24 sm:px-10 sm:py-32 lg:px-20"
       data-tempo={tempo}
     >
-      <ScanlineReveal className="mx-auto mb-10 max-w-3xl">
-        <h2 className="font-display text-3xl font-semibold tracking-tight text-off-white sm:text-5xl">
+      <ScanlineReveal className="mx-auto mb-12 max-w-3xl">
+        <p className="mb-2 font-mono text-[0.65rem] uppercase tracking-[0.35em] text-accent">
+          {sectionIndex} /
+        </p>
+        <h2 className="font-display text-5xl font-black uppercase leading-none tracking-tight text-off-white sm:text-6xl">
           {title}
         </h2>
       </ScanlineReveal>
 
       {status === 'loading' && <LoadingState label={`Loading ${title.toLowerCase()}…`} />}
-      {status === 'error' && <ErrorState label={errorLabel} />}
-      {status === 'empty' && <EmptyState label={emptyLabel} />}
+      {status === 'error'   && <ErrorState label={errorLabel} />}
+      {status === 'empty'   && <EmptyState label={emptyLabel} />}
 
       {status === 'ready' && (
         <motion.div
@@ -91,7 +99,7 @@ export function StandingsSection({
           className="mx-auto max-w-3xl"
           variants={containerVariants}
           initial="hidden"
-          animate={inView ? 'visible' : 'hidden'}
+          animate={shouldReveal ? 'visible' : 'hidden'}
         >
           {rows.map((row, i) => (
             <motion.div key={row.key} variants={rowVariants}>
@@ -99,7 +107,7 @@ export function StandingsSection({
                 row={row}
                 leaderPoints={leaderPoints}
                 index={i}
-                inView={inView}
+                inView={shouldReveal}
               />
             </motion.div>
           ))}
@@ -128,27 +136,44 @@ function StandingRow({
 
   return (
     <div
-      className={`home-standings-row grid grid-cols-[2.5rem_1fr_auto] items-center gap-4 border-b border-steel/40 py-4${
-        isLeader ? ' home-standings-row--leader' : ''
+      className={`home-standings-row grid min-h-[64px] grid-cols-[2.5rem_1fr_auto] items-center gap-4 border-b py-4${
+        isLeader
+          ? ' home-standings-row--leader border-l-2 border-l-accent pl-3'
+          : ''
       }`}
+      style={{ borderBottomColor: '#222226' }}
       data-leader={isLeader || undefined}
     >
-      <span className="font-mono text-sm tabular-nums text-silver">
+      {/* Position */}
+      <span
+        className="font-mono text-sm tabular-nums"
+        style={{ color: isLeader ? 'var(--accent)' : 'var(--color-silver)' }}
+      >
         {row.positionText}
       </span>
 
+      {/* Name + team + gap bar */}
       <div className="min-w-0">
-        <p className="truncate font-sans text-base text-off-white">{row.primary}</p>
+        <p
+          className="truncate font-display font-black uppercase leading-tight"
+          style={{
+            fontSize: 'clamp(18px, 2vw, 26px)',
+            color: isLeader ? 'var(--accent)' : 'var(--color-off-white)',
+          }}
+        >
+          {row.primary}
+        </p>
         {row.secondary && (
           <p className="truncate font-mono text-xs text-silver">{row.secondary}</p>
         )}
         <div className="mt-2">
-          <GapBar ratio={ratio} inView={inView} />
+          <GapBar ratio={ratio} inView={inView} isLeader={isLeader} />
         </div>
       </div>
 
+      {/* Points + wins */}
       <div className="text-right">
-        <p className="font-mono text-base tabular-nums text-off-white">
+        <p className="font-mono text-lg tabular-nums text-off-white">
           <CountUp to={row.points} decimals={decimals} duration={1.4} />{' '}
           <span className="text-xs text-silver">pts</span>
         </p>
@@ -160,22 +185,28 @@ function StandingRow({
   );
 }
 
-// ── Gap-to-leader bar ─────────────────────────────────────────────────────────
-// Receives inView from the parent container — no per-bar IO.
-// Animates via scaleX (transformOrigin left) rather than width to stay
-// GPU-friendly. The percentage IS the data.
+// ── Gap bar ───────────────────────────────────────────────────────────────────
 
-function GapBar({ ratio, inView }: { ratio: number; inView: boolean }) {
+function GapBar({
+  ratio,
+  inView,
+  isLeader,
+}: {
+  ratio: number;
+  inView: boolean;
+  isLeader: boolean;
+}) {
   const reduced = useReducedMotion();
   const clamped = Math.max(0, Math.min(1, ratio));
 
   return (
     <div
-      className="home-gapbar-track relative h-1 w-full overflow-hidden rounded-full bg-iron"
+      className="relative h-[2px] w-full overflow-hidden bg-iron"
       aria-hidden="true"
     >
       <motion.div
-        className="home-gapbar-fill absolute inset-y-0 left-0 w-full origin-left rounded-full bg-accent"
+        className="absolute inset-y-0 left-0 w-full origin-left"
+        style={{ background: isLeader ? 'var(--accent)' : 'var(--color-silver)' }}
         initial={{ scaleX: 0 }}
         animate={inView || reduced ? { scaleX: clamped } : { scaleX: 0 }}
         transition={reduced ? { duration: 0.01 } : transitions.measured}

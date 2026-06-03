@@ -4,20 +4,20 @@
  * <MaskReveal>
  *
  * Reveals children via an animated clip-path inset.
- * The content is already in the DOM (good for SEO/a11y) — the mask only
- * controls visibility, never layout.
+ * Content is always in the DOM (SEO/a11y-safe) — the mask controls visibility only.
  *
- * clip-path directions:
- *   left   → inset(0% 100% 0% 0%)  reveals left-to-right  ← default
- *   right  → inset(0% 0% 0% 100%)  reveals right-to-left
- *   top    → inset(100% 0% 0% 0%)  reveals top-to-bottom
- *   bottom → inset(0% 0% 100% 0%)  reveals bottom-to-top
+ * Directions:
+ *   left   → reveals left-to-right  (default)
+ *   right  → reveals right-to-left
+ *   top    → reveals top-to-bottom
+ *   bottom → reveals bottom-to-top
  *
- * trigger="mount"  — fires immediately (hero elements above the fold)
- * trigger="scroll" — fires when element enters the viewport (default)
+ * 3-second fallback: if IntersectionObserver hasn't fired (short viewport,
+ * collapsed section, etc.), the element force-reveals so content is never
+ * permanently hidden from users who don't scroll far enough.
  */
 
-import { useRef, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { motion, useInView } from 'framer-motion';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { transitions, type MotionPreset } from '@/lib/motion';
@@ -36,8 +36,6 @@ export interface MaskRevealProps {
   className?: string;
 }
 
-// ── Clip-path helpers ─────────────────────────────────────────────────────────
-
 function clipHidden(dir: MaskDirection): string {
   switch (dir) {
     case 'left':   return 'inset(0% 100% 0% 0%)';
@@ -48,8 +46,6 @@ function clipHidden(dir: MaskDirection): string {
 }
 
 const CLIP_VISIBLE = 'inset(0% 0% 0% 0%)';
-
-// ── Component ─────────────────────────────────────────────────────────────────
 
 export function MaskReveal({
   children,
@@ -62,12 +58,17 @@ export function MaskReveal({
 }: MaskRevealProps) {
   const reduced = useReducedMotion();
   const ref = useRef<HTMLDivElement>(null);
+  const inView = useInView(ref, { once, amount: 0.15 });
 
-  // useInView is a no-op when trigger=mount — we just always set shouldReveal=true
-  const inView = useInView(ref, { once, amount: 0.2 });
-  const shouldReveal = trigger === 'mount' ? true : inView;
+  // Force-reveal after 3 s — ensures content is never permanently hidden
+  const [forceReveal, setForceReveal] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setForceReveal(true), 3000);
+    return () => clearTimeout(t);
+  }, []);
 
-  // Reduced motion: render without any clip animation
+  const shouldReveal = trigger === 'mount' ? true : inView || forceReveal;
+
   if (reduced) {
     return (
       <div ref={ref} className={className}>
@@ -81,7 +82,7 @@ export function MaskReveal({
       ref={ref}
       className={className}
       initial={{ clipPath: clipHidden(direction) }}
-      animate={shouldReveal ? { clipPath: CLIP_VISIBLE } : { clipPath: clipHidden(direction) }}
+      animate={{ clipPath: shouldReveal ? CLIP_VISIBLE : clipHidden(direction) }}
       transition={{ ...transitions[preset], delay }}
     >
       {children}

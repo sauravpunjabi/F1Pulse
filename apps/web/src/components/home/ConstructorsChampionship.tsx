@@ -42,6 +42,7 @@ export function ConstructorsChampionship({
   return (
     <StandingsSection
       title="Constructors' Championship"
+      sectionIndex="03"
       tempo={tempo}
       status={status}
       rows={rows}

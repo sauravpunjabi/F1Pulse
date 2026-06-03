@@ -173,6 +173,13 @@ export interface SeasonChampionDto {
 /** GET /api/history/champions returns an array of SeasonChampionDto */
 export type HistoryChampionsDto = SeasonChampionDto[];
 
+/** GET /api/era/range?from=&to= — one entry per season in the range */
+export interface SeasonSummaryDto {
+  season: number;
+  raceCount: number;
+  champion: SeasonChampionDto | null;
+}
+
 export interface DriverCareerSeasonDto {
   season: number;
   round: number;
@@ -296,6 +303,12 @@ export const fetchSchedule = (season: 'current' | number = 'current') =>
 export const fetchHistoryChampions = () =>
   apiFetch<HistoryChampionsDto>('/api/history/champions');
 
+export const fetchEraChampion = (year: number) =>
+  apiFetch<SeasonChampionDto>(`/api/era/${year}/champion`);
+
+export const fetchEraRange = (from: number, to: number) =>
+  apiFetch<SeasonSummaryDto[]>(`/api/era/range?from=${from}&to=${to}`);
+
 export const fetchLiveStatus = () =>
   apiFetch<LiveStatusDto>('/api/live/status');
 
@@ -314,10 +327,15 @@ export const fetchConstructorProfile = (constructorId: string) =>
 export const fetchConstructorsList = () =>
   apiFetch<ConstructorsListDto>('/api/constructors');
 
+export const fetchRoundResults = (season: number, round: number) =>
+  apiFetch<RoundResultsDto>(`/api/results/${season}/${round}`);
+
 // ── React Query keys ──────────────────────────────────────────────────────────
 
 export const queryKeys = {
   seasonCurrent:          ['season', 'current'] as const,
+  eraChampion:            (year: number) => ['era', year, 'champion'] as const,
+  eraRange:               (from: number, to: number) => ['era', 'range', from, to] as const,
   driverStandings:        (s: 'current' | number) => ['standings', 'drivers', s] as const,
   constructorStandings:   (s: 'current' | number) => ['standings', 'constructors', s] as const,
   schedule:               (s: 'current' | number) => ['schedule', s] as const,
@@ -328,6 +346,7 @@ export const queryKeys = {
   driverWins:             (id: string) => ['driver', id, 'wins'] as const,
   constructorProfile:     (id: string) => ['constructor', id] as const,
   constructorsList:       ['constructors', 'list'] as const,
+  roundResults:           (season: number, round: number) => ['results', season, round] as const,
 } as const;
 
 // ── React Query hooks ─────────────────────────────────────────────────────────
@@ -374,7 +393,25 @@ export function useHistoryChampions(): UseQueryResult<HistoryChampionsDto> {
   return useQuery({
     queryKey: queryKeys.historyChampions,
     queryFn:  fetchHistoryChampions,
-    staleTime: 24 * 60 * 60 * 1000, // 24h — history never changes
+    staleTime: 24 * 60 * 60 * 1000,
+  });
+}
+
+export function useEraChampion(year: number): UseQueryResult<SeasonChampionDto> {
+  return useQuery({
+    queryKey: queryKeys.eraChampion(year),
+    queryFn:  () => fetchEraChampion(year),
+    staleTime: 24 * 60 * 60 * 1000,
+    enabled:  year > 0,
+  });
+}
+
+export function useEraRange(from: number, to: number): UseQueryResult<SeasonSummaryDto[]> {
+  return useQuery({
+    queryKey: queryKeys.eraRange(from, to),
+    queryFn:  () => fetchEraRange(from, to),
+    staleTime: 24 * 60 * 60 * 1000,
+    enabled:  from > 0 && to >= from,
   });
 }
 
@@ -428,6 +465,15 @@ export function useConstructorsList(): UseQueryResult<ConstructorsListDto> {
     queryKey: queryKeys.constructorsList,
     queryFn:  fetchConstructorsList,
     staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useRoundResults(season: number, round: number): UseQueryResult<RoundResultsDto> {
+  return useQuery({
+    queryKey: queryKeys.roundResults(season, round),
+    queryFn:  () => fetchRoundResults(season, round),
+    staleTime: 24 * 60 * 60 * 1000,
+    enabled:  season > 0 && round > 0,
   });
 }
 
