@@ -34,8 +34,8 @@ export function useScrollCamera(): void {
       });
     };
 
-    // lenis.on returns its own cleanup — forward it directly.
-    return lenis.on('scroll', onScroll);
+    lenis.on('scroll', onScroll);
+    return () => lenis.off('scroll', onScroll);
   }, [lenis]);
 
   useFrame(() => {

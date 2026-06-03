@@ -82,8 +82,7 @@
 
 /* ── Base reset ─────────────────────────────────────────────────────────────── */
 
-html,
-body {
+html {
   height: 100%;
   background-color: var(--bg);
   color: var(--text-primary);
@@ -91,6 +90,14 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+}
+
+/* min-height (not height) so the body grows with page content.
+   height: 100% would pin the body to the viewport height, preventing
+   Lenis's ResizeObserver from ever firing when data loads and sections
+   expand — which left the scroll limit frozen at the initial short value. */
+body {
+  min-height: 100%;
 }
 
 /* Smooth scroll handed off to Lenis — keep native scroll behaviour neutral */

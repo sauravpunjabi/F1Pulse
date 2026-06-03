@@ -6,20 +6,27 @@
  * Drivers and Constructors map their DTOs to a common StandingRowData shape
  * and render through this one component, so the motion + layout stay identical.
  *
- * Per row:
- *   - <MaskReveal> staggered entrance
- *   - <CountUp> on the points
- *   - animated gap-to-leader bar (scaleX = points / leaderPoints)
+ * Animation architecture — one IntersectionObserver for the whole rows block:
+ *   - A single useInView ref on the rows container replaces the previous
+ *     per-row MaskReveal (20 IOs) + per-GapBar whileInView (20 IOs).
+ *   - All 20 rows stagger via Framer Motion variants driven by that single IO.
+ *   - GapBar receives inView as a prop; it animates on the same trigger.
+ *   - CountUp still has its own IO (lightweight; runs once after reveal).
  *
  * The leader row carries `data-leader` + the `home-standings-row--leader`
  * class hook — visually distinct styling is left to the art director.
  */
 
-import { motion } from 'framer-motion';
+import { useRef } from 'react';
+import { motion, useInView } from 'framer-motion';
 import type { Tempo } from './adaptive';
-import { MaskReveal, CountUp, ScanlineReveal } from '@/components/primitives';
+import { CountUp, ScanlineReveal } from '@/components/primitives';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
-import { transitions } from '@/lib/motion';
+import {
+  transitions,
+  staggerContainerVariants,
+  fadeUpVariants,
+} from '@/lib/motion';
 import {
   LoadingState,
   ErrorState,
@@ -47,6 +54,9 @@ export interface StandingsSectionProps {
   emptyLabel: string;
 }
 
+const containerVariants = staggerContainerVariants(0.04);
+const rowVariants = fadeUpVariants('measured', 16);
+
 export function StandingsSection({
   title,
   tempo,
@@ -56,6 +66,10 @@ export function StandingsSection({
   errorLabel,
   emptyLabel,
 }: StandingsSectionProps) {
+  // Single IO for all rows — fires once when the top of the list enters view.
+  const containerRef = useRef<HTMLDivElement>(null);
+  const inView = useInView(containerRef, { once: true, amount: 0.1 });
+
   return (
     <section
       className="home-standings px-6 py-20 sm:px-10 sm:py-28 lg:px-16"
@@ -72,75 +86,86 @@ export function StandingsSection({
       {status === 'empty' && <EmptyState label={emptyLabel} />}
 
       {status === 'ready' && (
-        <div className="mx-auto max-w-3xl">
+        <motion.div
+          ref={containerRef}
+          className="mx-auto max-w-3xl"
+          variants={containerVariants}
+          initial="hidden"
+          animate={inView ? 'visible' : 'hidden'}
+        >
           {rows.map((row, i) => (
-            <StandingRow key={row.key} row={row} leaderPoints={leaderPoints} index={i} />
+            <motion.div key={row.key} variants={rowVariants}>
+              <StandingRow
+                row={row}
+                leaderPoints={leaderPoints}
+                index={i}
+                inView={inView}
+              />
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
       )}
     </section>
   );
 }
 
-// ── Row ───────────────────────────────────────────────────────────────────
+// ── Row ───────────────────────────────────────────────────────────────────────
 
 function StandingRow({
   row,
   leaderPoints,
   index,
+  inView,
 }: {
   row: StandingRowData;
   leaderPoints: number;
   index: number;
+  inView: boolean;
 }) {
   const isLeader = index === 0;
   const ratio = leaderPoints > 0 ? row.points / leaderPoints : 0;
   const decimals = Number.isInteger(row.points) ? 0 : 1;
 
   return (
-    <MaskReveal
-      trigger="scroll"
-      preset="measured"
-      direction="left"
-      delay={Math.min(index, 12) * 0.04}
+    <div
+      className={`home-standings-row grid grid-cols-[2.5rem_1fr_auto] items-center gap-4 border-b border-steel/40 py-4${
+        isLeader ? ' home-standings-row--leader' : ''
+      }`}
+      data-leader={isLeader || undefined}
     >
-      <div
-        className={`home-standings-row grid grid-cols-[2.5rem_1fr_auto] items-center gap-4 border-b border-steel/40 py-4${
-          isLeader ? ' home-standings-row--leader' : ''
-        }`}
-        data-leader={isLeader || undefined}
-      >
-        <span className="font-mono text-sm tabular-nums text-silver">{row.positionText}</span>
+      <span className="font-mono text-sm tabular-nums text-silver">
+        {row.positionText}
+      </span>
 
-        <div className="min-w-0">
-          <p className="truncate font-sans text-base text-off-white">{row.primary}</p>
-          {row.secondary && (
-            <p className="truncate font-mono text-xs text-silver">{row.secondary}</p>
-          )}
-          <div className="mt-2">
-            <GapBar ratio={ratio} />
-          </div>
-        </div>
-
-        <div className="text-right">
-          <p className="font-mono text-base tabular-nums text-off-white">
-            <CountUp to={row.points} decimals={decimals} duration={1.4} />{' '}
-            <span className="text-xs text-silver">pts</span>
-          </p>
-          <p className="font-mono text-xs tabular-nums text-silver">
-            {row.wins} {row.wins === 1 ? 'win' : 'wins'}
-          </p>
+      <div className="min-w-0">
+        <p className="truncate font-sans text-base text-off-white">{row.primary}</p>
+        {row.secondary && (
+          <p className="truncate font-mono text-xs text-silver">{row.secondary}</p>
+        )}
+        <div className="mt-2">
+          <GapBar ratio={ratio} inView={inView} />
         </div>
       </div>
-    </MaskReveal>
+
+      <div className="text-right">
+        <p className="font-mono text-base tabular-nums text-off-white">
+          <CountUp to={row.points} decimals={decimals} duration={1.4} />{' '}
+          <span className="text-xs text-silver">pts</span>
+        </p>
+        <p className="font-mono text-xs tabular-nums text-silver">
+          {row.wins} {row.wins === 1 ? 'win' : 'wins'}
+        </p>
+      </div>
+    </div>
   );
 }
 
-// ── Gap-to-leader bar ─────────────────────────────────────────────────────
-// Animates via scaleX (transformOrigin left) rather than width, so it reads as
-// a growing bar while staying GPU-friendly. The percentage IS the data.
+// ── Gap-to-leader bar ─────────────────────────────────────────────────────────
+// Receives inView from the parent container — no per-bar IO.
+// Animates via scaleX (transformOrigin left) rather than width to stay
+// GPU-friendly. The percentage IS the data.
 
-function GapBar({ ratio }: { ratio: number }) {
+function GapBar({ ratio, inView }: { ratio: number; inView: boolean }) {
   const reduced = useReducedMotion();
   const clamped = Math.max(0, Math.min(1, ratio));
 
@@ -151,9 +176,8 @@ function GapBar({ ratio }: { ratio: number }) {
     >
       <motion.div
         className="home-gapbar-fill absolute inset-y-0 left-0 w-full origin-left rounded-full bg-accent"
-        initial={{ scaleX: reduced ? clamped : 0 }}
-        whileInView={{ scaleX: clamped }}
-        viewport={{ once: true, amount: 0.6 }}
+        initial={{ scaleX: 0 }}
+        animate={inView || reduced ? { scaleX: clamped } : { scaleX: 0 }}
         transition={reduced ? { duration: 0.01 } : transitions.measured}
       />
     </div>

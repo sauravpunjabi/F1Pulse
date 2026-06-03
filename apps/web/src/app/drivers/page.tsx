@@ -7,7 +7,6 @@
  * Each card links to /driver/[driverId].
  * Data: /api/standings/drivers?season=current
  *
- * TODO: Add grid-level entrance choreography (stagger rows via SectionReveal).
  * TODO: Add portrait thumbnails once photography is sourced.
  * TODO: Sort/filter controls (by team, by nationality) if needed.
  */
@@ -66,45 +65,55 @@ export default function DriversPage() {
             const team = constructors[0]?.name ?? '';
 
             return (
-              <Link
-                key={driver.id}
-                href={`/driver/${driver.id}`}
-                className="driver-card group relative flex flex-col justify-end overflow-hidden rounded border border-white/10 p-5 transition-colors hover:border-white/25 hover:bg-white/[0.03]"
-                // TODO: add data-driver-accent={driver.id} once per-card colors are wired
-                aria-label={`${driver.givenName} ${driver.familyName}, P${position}`}
-              >
-                {/*
-                 * Portrait placeholder — art director replaces with imagery.
-                 * TODO: <Image> once per-driver thumbnails exist.
-                 */}
-                <div
-                  className="driver-portrait pointer-events-none absolute inset-0 opacity-0 transition-opacity group-hover:opacity-100"
-                  aria-hidden="true"
-                />
+              <div key={driver.id} className="driver-card group relative">
+                <Link
+                  href={`/driver/${driver.id}`}
+                  className="relative flex flex-col justify-end overflow-hidden rounded border border-white/10 p-5 transition-colors hover:border-white/25 hover:bg-white/[0.03] block"
+                  // TODO: add data-driver-accent={driver.id} once per-card colors are wired
+                  aria-label={`${driver.givenName} ${driver.familyName}, P${position}`}
+                >
+                  {/*
+                   * Portrait placeholder — art director replaces with imagery.
+                   * TODO: <Image> once per-driver thumbnails exist.
+                   */}
+                  <div
+                    className="driver-portrait pointer-events-none absolute inset-0 opacity-0 transition-opacity group-hover:opacity-100"
+                    aria-hidden="true"
+                  />
 
-                {/* Position badge */}
-                <span className="mb-auto self-start font-mono text-xs text-white/25">
-                  P{position}
-                </span>
+                  {/* Position badge */}
+                  <span className="mb-auto self-start font-mono text-xs text-white/25">
+                    P{position}
+                  </span>
 
-                {/* Driver name */}
-                <MaskReveal direction="bottom" preset="measured" once>
-                  <div className="mt-8">
-                    <p className="font-mono text-[0.6rem] uppercase tracking-[0.2em] text-white/40">
-                      {driver.givenName}
-                    </p>
-                    <p className="font-display text-xl font-black uppercase leading-tight">
-                      {driver.familyName}
-                    </p>
+                  {/* Driver name */}
+                  <MaskReveal direction="bottom" preset="measured" once>
+                    <div className="mt-8">
+                      <p className="font-mono text-[0.6rem] uppercase tracking-[0.2em] text-white/40">
+                        {driver.givenName}
+                      </p>
+                      <p className="font-display text-xl font-black uppercase leading-tight">
+                        {driver.familyName}
+                      </p>
+                    </div>
+                  </MaskReveal>
+
+                  {/* Team + stats */}
+                  <div className="mt-3 flex items-center justify-between font-mono text-[0.6rem] text-white/30">
+                    <span>{team}</span>
+                    <span>{points} pts</span>
                   </div>
-                </MaskReveal>
+                </Link>
 
-                {/* Team + stats */}
-                <div className="mt-3 flex items-center justify-between font-mono text-[0.6rem] text-white/30">
-                  <span>{team}</span>
-                  <span>{points} pts</span>
-                </div>
-              </Link>
+                {/* Compare shortcut — sets ?a= on the compare page */}
+                <Link
+                  href={`/compare?a=${driver.id}`}
+                  className="mt-1 block w-full border border-white/[0.07] py-1.5 text-center font-mono text-[0.52rem] uppercase tracking-[0.22em] text-white/20 transition-colors hover:border-white/20 hover:text-white/45"
+                  aria-label={`Compare ${driver.familyName}`}
+                >
+                  Compare
+                </Link>
+              </div>
             );
           })}
         </SectionReveal>

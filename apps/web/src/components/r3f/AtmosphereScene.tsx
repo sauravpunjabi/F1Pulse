@@ -42,7 +42,12 @@ export default function AtmosphereScene() {
         dpr={[1, 2]}
         camera={{ position: [0, 0, 5], fov: 60 }}
         gl={{ antialias: false, alpha: true }}
-        style={{ width: '100%', height: '100%' }}
+        // Background-only canvas: no interactive 3D objects, so disable R3F's
+        // entire event system. This prevents the canvas from registering any
+        // DOM event listeners that could intercept wheel/pointer events and
+        // interfere with Lenis smooth scroll.
+        events={undefined}
+        style={{ width: '100%', height: '100%', pointerEvents: 'none' }}
       >
         {/* Dark exponential fog — deepens perceived depth */}
         <fog attach="fog" args={['#050505', 8, 28]} />

@@ -25,12 +25,14 @@ import {
   createContext,
   useContext,
   useEffect,
+  useLayoutEffect,
   useState,
   type ReactNode,
 } from 'react';
 import Lenis from 'lenis';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { usePathname } from 'next/navigation';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -46,6 +48,19 @@ export function useLenis(): Lenis | null {
 
 export function LenisProvider({ children }: { children: ReactNode }) {
   const [lenis, setLenis] = useState<Lenis | null>(null);
+  const pathname = usePathname();
+
+  // ── Reset scroll position on every route change ───────────────────────────
+  // useLayoutEffect (not useEffect) so the reset runs before the browser
+  // paints the new page — no single-frame flash at the wrong scroll depth.
+  useLayoutEffect(() => {
+    if (!lenis) return;
+    // Kill stale ScrollTriggers from the previous page first (e.g. the
+    // DriverTimeline pin), then jump to top. Order matters: killing while
+    // pinned restores normal flow before the scroll position changes.
+    ScrollTrigger.killAll();
+    lenis.scrollTo(0, { immediate: true });
+  }, [pathname, lenis]);
 
   useEffect(() => {
     const instance = new Lenis({
@@ -76,13 +91,23 @@ export function LenisProvider({ children }: { children: ReactNode }) {
 
     setLenis(instance);
 
-    // ── Reduced-motion: disable smooth scroll, keep native behaviour ───────
+    // ── Reduced-motion: destroy Lenis and fall back to native scroll ────────
+    // Calling instance.stop() is NOT safe — Lenis's wheel listener remains
+    // active and calls preventDefault() even when stopped, which silently
+    // blocks all native scroll. Destroying the instance fully restores native
+    // scroll behaviour for users who have requested reduced motion.
     const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
-    if (mq.matches) instance.stop();
+    if (mq.matches) {
+      instance.destroy();
+      setLenis(null);
+      ro.disconnect();
+      gsap.ticker.remove(tickerHandler);
+      return;
+    }
 
     const handleMq = (e: MediaQueryListEvent) => {
-      if (e.matches) instance.stop();
-      else instance.start();
+      // Toggling reduced-motion at runtime is rare; reload is acceptable.
+      if (e.matches) window.location.reload();
     };
     mq.addEventListener('change', handleMq);
 

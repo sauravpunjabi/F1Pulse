@@ -59,8 +59,10 @@ export function DriverTimeline({ seasons }: DriverTimelineProps) {
         scrollTrigger: {
           trigger: wrapper,
           pin: true,
-          scrub: 1,
-          // TODO: end distance — "+=<scrollWidth>" gives 1:1 feel; tune multiplier.
+          // scrub: true = animation perfectly tracks scroll position with no
+          // lag. scrub: 1 (1-second delay) was making the timeline feel frozen
+          // — the user scrolled for a full second and saw nothing move.
+          scrub: true,
           end: () => `+=${scrollWidth}`,
           invalidateOnRefresh: true,
         },
@@ -78,9 +80,12 @@ export function DriverTimeline({ seasons }: DriverTimelineProps) {
       aria-label="Career timeline"
     >
       {/* Section heading — outside the pinned wrapper so it scrolls normally. */}
-      <div className="px-6 pb-8 pt-24 md:px-16">
+      <div className="flex items-baseline justify-between px-6 pb-8 pt-24 md:px-16">
         <p className="font-mono text-xs uppercase tracking-[0.25em] text-white/40">
           Career Seasons
+        </p>
+        <p className="font-mono text-[0.58rem] uppercase tracking-[0.2em] text-white/20">
+          Scroll to advance →
         </p>
       </div>
 
