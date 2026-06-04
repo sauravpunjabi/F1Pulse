@@ -1,23 +1,22 @@
 'use client';
 
 /**
- * / — Homepage: one authored cinematic scene.
+ * / — Homepage: cinematic editorial experience.
  *
  * Choreographed top to bottom:
  *   1. StartLightsLoader — F1 start-light sequence while initial data loads.
- *   2. Hero             — title + season + next-race countdown + leader.
- *   3. DriversChampionship
- *   4. ConstructorsChampionship
- *   5. SeasonCalendar
+ *   2. Hero             — elegant, minimal fullscreen title scene.
+ *   3. CurrentEra       — live timing, standings, next race schedules in a magazine grid.
+ *   4. SpeedSequence    — fast-paced telemetry parallax divider.
+ *   5. HistoryTransition— shifts mood from modern off-white to vintage dark serif.
+ *   6. EraTimeline      — signature pinned horizontal scroll decadal history (1950 → 2026).
  *
  * All data flows from our own API via React Query (lib/api). Zero hardcoded
- * race data — every value on screen is fetched, and every section degrades to
- * an honest empty/error state if a feed is unreachable.
+ * race data — every value on screen is fetched.
  *
  * Loader gate: the loader holds until the hero-critical queries SETTLE
  * (success or error) AND ≥2.5s has elapsed — "until data resolves or 2.5s,
- * whichever is longer." An 8s ceiling guarantees a hung request never traps
- * the user; the hero then shows its own empty states.
+ * whichever is longer."
  *
  * Adaptive state: useSyncLiveStatus mirrors /api/live/status into Zustand;
  * useTempo derives 'live' | 'normal' | 'calm' and every section reads it
@@ -28,22 +27,19 @@ import { useCallback, useEffect, useState } from 'react';
 import {
   useSeasonCurrent,
   useDriverStandings,
-  useConstructorStandings,
-  useSchedule,
 } from '@/lib/api';
-import { AtmosphereLayer } from '@/components/r3f/AtmosphereLayer';
 import {
   StartLightsLoader,
   Hero,
-  DriversChampionship,
-  ConstructorsChampionship,
-  SeasonCalendar,
+  CurrentEra,
+  SpeedSequence,
+  HistoryTransition,
+  EraTimeline,
   useSyncLiveStatus,
   useTempo,
 } from '@/components/home';
 
-const MIN_LOADER_MS = 2_500; // floor: lights get their full sequence
-const MAX_LOADER_MS = 8_000; // ceiling: never trap the user on a hung feed
+const MAX_LOADER_MS = 8_000; // ceiling: never trap the user on a short feed
 
 export default function HomePage() {
   // ── Adaptive live status → Zustand → tempo ────────────────────────────────
@@ -53,8 +49,6 @@ export default function HomePage() {
   // ── Data (all client-side via React Query) ────────────────────────────────
   const season = useSeasonCurrent();
   const drivers = useDriverStandings('current');
-  const constructors = useConstructorStandings('current');
-  const schedule = useSchedule('current');
 
   // ── Loader gate ───────────────────────────────────────────────────────────
   // Hero-critical = season + driver standings. A query is "settled" once it has
@@ -62,17 +56,31 @@ export default function HomePage() {
   const heroSettled =
     (season.isSuccess || season.isError) && (drivers.isSuccess || drivers.isError);
 
+  const [minLoaderMs, setMinLoaderMs] = useState(2500);
   const [minElapsed, setMinElapsed] = useState(false);
   const [maxElapsed, setMaxElapsed] = useState(false);
 
   useEffect(() => {
-    const min = window.setTimeout(() => setMinElapsed(true), MIN_LOADER_MS);
+    try {
+      const visited = localStorage.getItem('f1pulse-visited');
+      if (visited) {
+        setMinLoaderMs(1200);
+      } else {
+        localStorage.setItem('f1pulse-visited', 'true');
+      }
+    } catch (e) {
+      // ignore
+    }
+  }, []);
+
+  useEffect(() => {
+    const min = window.setTimeout(() => setMinElapsed(true), minLoaderMs);
     const max = window.setTimeout(() => setMaxElapsed(true), MAX_LOADER_MS);
     return () => {
       window.clearTimeout(min);
       window.clearTimeout(max);
     };
-  }, []);
+  }, [minLoaderMs]);
 
   const ready = minElapsed && (heroSettled || maxElapsed);
 
@@ -85,19 +93,16 @@ export default function HomePage() {
 
   return (
     <>
-      {/*
-       * R3F atmospheric backdrop — behind everything, scroll-reactive, and a
-       * no-op when WebGL is unavailable. Fixed so it persists across the scroll.
-       */}
-      <div className="pointer-events-none fixed inset-0 -z-10" aria-hidden="true">
-        <AtmosphereLayer />
-      </div>
-
       <main className="relative">
         <Hero season={season} drivers={drivers} revealed={revealed} tempo={tempo} />
-        <DriversChampionship query={drivers} tempo={tempo} />
-        <ConstructorsChampionship query={constructors} tempo={tempo} />
-        <SeasonCalendar query={schedule} tempo={tempo} />
+        {revealed && (
+          <>
+            <CurrentEra />
+            <SpeedSequence />
+            <HistoryTransition />
+            <EraTimeline />
+          </>
+        )}
       </main>
 
       {!loaderGone && (

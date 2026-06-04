@@ -38,9 +38,10 @@ const config: Config = {
 
       /* ── Typography ─────────────────────────────────────────────────────── */
       fontFamily: {
-        display: ['var(--font-display)', 'Georgia', 'serif'],    // TODO: cinematic display face
-        sans:    ['var(--font-sans)', 'system-ui', 'sans-serif'],// TODO: body / UI face
-        mono:    ['var(--font-mono)', 'Courier New', 'monospace'],// TODO: telemetry / data face
+        display: ['var(--font-display)', 'Georgia', 'serif'],
+        serif:   ['var(--font-serif)', 'Georgia', 'serif'],
+        sans:    ['var(--font-sans)', 'system-ui', 'sans-serif'],
+        mono:    ['var(--font-mono)', 'Courier New', 'monospace'],
       },
 
       /* ── Motion ─────────────────────────────────────────────────────────── */

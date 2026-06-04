@@ -1,5 +1,9 @@
 export { StartLightsLoader } from './StartLightsLoader';
 export { Hero } from './Hero';
+export { CurrentEra } from './CurrentEra';
+export { SpeedSequence } from './SpeedSequence';
+export { HistoryTransition } from './HistoryTransition';
+export { EraTimeline } from './EraTimeline';
 export { DriversChampionship } from './DriversChampionship';
 export { ConstructorsChampionship } from './ConstructorsChampionship';
 export { SeasonCalendar } from './SeasonCalendar';

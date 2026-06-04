@@ -9,58 +9,48 @@
    ───────────────────────────────────────────────────────────────────────────── */
 
 :root {
-  color-scheme: dark;
+  color-scheme: light;
 
-  /* ── Palette ──────────────────────────────────────────────────────────────── */
-  --color-black:     #050505; /* matte black — deepest background */
-  --color-void:      #0f0f0f; /* near-black — surface behind cards */
-  --color-graphite:  #161616; /* graphite — elevated surface / card bg */
-  --color-iron:      #222222; /* subtle lift above graphite */
-  --color-steel:     #3a3a3a; /* borders, dividers */
-  --color-silver:    #a8a8a8; /* secondary text, muted labels */
-  --color-off-white: #f5f5f5; /* primary text */
-  --color-red:       #E10600; /* Ferrari red — Ferrari/accent */
-  --color-red-dim:   #9a0400; /* dimmed red for hover/state */
+  /* ── Palette (Premium Editorial Mode) ─────────────────────────────────────── */
+  --color-black:     #111111; /* matte rich black */
+  --color-void:      #1E1E1E; /* charcoal graphite */
+  --color-graphite:  #1E1E1E; /* charcoal graphite */
+  --color-iron:      #E4E2DC; /* light warm gray border/lift */
+  --color-steel:     #D2D0C9; /* divider steel */
+  --color-silver:    #7A7872; /* muted label gray */
+  --color-off-white: #F5F4F0; /* soft warm bookish paper off-white */
+  --color-red:       #C9201A; /* restrained Ferrari crimson red */
+  --color-red-dim:   #931510; /* dimmed red */
 
-  /* ── Semantic aliases (map palette → role) ────────────────────────────────── */
-  --bg:              var(--color-black);
-  --bg-surface:      var(--color-void);
-  --bg-elevated:     var(--color-graphite);
+  /* ── Semantic aliases (default: light editorial theme) ────────────────────── */
+  --bg:              var(--color-off-white);
+  --bg-surface:      var(--color-iron);
+  --bg-elevated:     #FFFFFF;
   --border:          var(--color-steel);
-  --text-primary:    var(--color-off-white);
+  --text-primary:    var(--color-black);
   --text-secondary:  var(--color-silver);
   --accent:          var(--color-red);
   --accent-dim:      var(--color-red-dim);
 
   /* ── Typography — font families ───────────────────────────────────────────── */
-  /* --font-display and --font-mono are injected by next/font in layout.tsx.
-     Fallbacks here fire only if the CSS variable is not yet resolved.          */
   --font-display: 'Saira Condensed', 'Arial Narrow', sans-serif;
+  --font-serif:   'Playfair Display', 'Cormorant Garamond', 'Georgia', serif;
   --font-sans:    system-ui, -apple-system, sans-serif;
   --font-mono:    'JetBrains Mono', 'Courier New', monospace;
 
   /* ── Motion duration presets ──────────────────────────────────────────────── */
-  /* TODO: Tune these once the first motion sequences are choreographed.
-     The current values follow the design system recommendation:
-     fast = micro-interaction, measured = standard transition, slow = page reveal.
-     Framer Motion variants should reference these via CSS var or JS const.     */
-  --duration-fast:     150ms; /* micro: button hover, focus ring */
-  --duration-measured: 280ms; /* standard: panel open, card expand */
-  --duration-slow:     600ms; /* reveal: page entrance, hero fade */
+  --duration-fast:     150ms;
+  --duration-measured: 280ms;
+  --duration-slow:     600ms;
 
-  /* TODO: Easing curves. Add more exotic spring curves here when the motion
-     choreography day arrives.                                                  */
-  --ease-out:    cubic-bezier(0.16, 1, 0.3, 1);   /* snappy decelerate */
-  --ease-in:     cubic-bezier(0.4, 0, 1, 1);       /* confident accelerate */
-  --ease-inout:  cubic-bezier(0.65, 0, 0.35, 1);  /* smooth both ends */
+  --ease-out:    cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in:     cubic-bezier(0.4, 0, 1, 1);
+  --ease-inout:  cubic-bezier(0.65, 0, 0.35, 1);
 
-  /* ── Atmosphere layer ─────────────────────────────────────────────────────── */
-  /* TODO: Dial these in during visual polish. Grain is intentionally subtle —
-     if you can see it at arm's length it's too strong. Vignette should
-     deepen the frame without feeling like a filter.                             */
-  --grain-opacity:    0.04;
-  --vignette-opacity: 0.32;   /* reduced from 0.55 — was killing text near edges */
-  --vignette-spread:  65%;    /* wider spread = softer falloff */
+  /* ── Atmosphere layer — dialed down to be extremely subtle ────────────────── */
+  --grain-opacity:    0.012;  /* was 0.04 */
+  --vignette-opacity: 0.15;   /* was 0.32 */
+  --vignette-spread:  65%;
 
   /* ── Z-index scale ────────────────────────────────────────────────────────── */
   --z-base:       0;
@@ -68,7 +58,27 @@
   --z-overlay:    20;
   --z-modal:      40;
   --z-nav:        60;
-  --z-atmosphere: 9999; /* always on top — atmosphere layer */
+  --z-atmosphere: 9999;
+}
+
+/* ── Dark Theme Overrides (for contrast sections) ───────────────────────────── */
+.theme-dark {
+  color-scheme: dark;
+  --bg:              #111111;
+  --bg-surface:      #1C1C1C;
+  --bg-elevated:     #242424;
+  --border:          #333333;
+  --text-primary:    #FAF9F6;
+  --text-secondary:  #A2A09A;
+  --accent:          var(--color-red);
+  --accent-dim:      var(--color-red-dim);
+  
+  --color-iron:      #2A2A2A;
+  --color-steel:     #3D3D3D;
+  --color-silver:    #A2A09A;
+  --color-off-white: #FAF9F6;
+  --color-black:     #111111;
+  --color-graphite:  #1E1E1E;
 }
 
 /* ── Base reset ─────────────────────────────────────────────────────────────── */
@@ -81,14 +91,13 @@ html {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+  transition: background-color 0.5s ease, color 0.5s ease;
 }
 
-/* min-height (not height) so the body grows with page content.
-   height: 100% would pin the body to the viewport height, preventing
-   Lenis's ResizeObserver from ever firing when data loads and sections
-   expand — which left the scroll limit frozen at the initial short value. */
 body {
   min-height: 100%;
+  background-color: var(--bg);
+  color: var(--text-primary);
 }
 
 /* Smooth scroll handed off to Lenis — keep native scroll behaviour neutral */

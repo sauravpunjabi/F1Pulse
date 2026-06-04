@@ -16,7 +16,7 @@
  * TODO: Apply per-driver gradient or overlay color via [data-driver-accent] in globals.css.
  */
 
-import { MaskReveal } from '@/components/primitives';
+import { MaskReveal, SplitTextReveal } from '@/components/primitives';
 import { type DriverProfileDto } from '@/lib/api';
 import { type DriverTheme } from '@/lib/driverThemes';
 
@@ -59,7 +59,7 @@ export function DriverHero({ driver, theme, driverId }: DriverHeroProps) {
       <div
         className="driver-portrait pointer-events-none absolute inset-0"
         aria-hidden="true"
-        // TODO: background-image set per-driver via [data-driver-accent] in CSS
+      // TODO: background-image set per-driver via [data-driver-accent] in CSS
       />
 
       {/*
@@ -70,7 +70,7 @@ export function DriverHero({ driver, theme, driverId }: DriverHeroProps) {
       <div
         className="driver-accent pointer-events-none absolute inset-0"
         aria-hidden="true"
-        // TODO: opacity and gradient set per-driver via CSS
+      // TODO: opacity and gradient set per-driver via CSS
       />
 
       {/* Vignette — bottom gradient so text is always readable. */}
@@ -85,21 +85,19 @@ export function DriverHero({ driver, theme, driverId }: DriverHeroProps) {
         <MaskReveal direction="bottom" preset="measured" delay={0.1} trigger="mount">
           <p
             className="mb-1 font-mono text-sm uppercase tracking-[0.25em] text-white/60"
-            // TODO: color via CSS var when accent is applied
+          // TODO: color via CSS var when accent is applied
           >
             {driver.givenName}
           </p>
         </MaskReveal>
 
         {/* Surname — giant condensed type. */}
-        <MaskReveal direction="bottom" preset="cinematic" delay={0.2} trigger="mount">
-          <h1
-            className="font-display text-[clamp(4rem,14vw,14rem)] font-black uppercase leading-none tracking-tight text-white"
-            // TODO: font-stretch condensed once display face is wired
-          >
-            {driver.familyName}
-          </h1>
-        </MaskReveal>
+        <h1
+          className="font-display text-[clamp(4rem,14vw,14rem)] font-black uppercase leading-none tracking-tight text-white"
+        // TODO: font-stretch condensed once display face is wired
+        >
+          <SplitTextReveal text={driver.familyName} delay={0.2} stagger={0.035} />
+        </h1>
 
         {/* Team + era meta row. */}
         <MaskReveal direction="bottom" preset="measured" delay={0.45} trigger="mount">

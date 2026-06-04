@@ -67,7 +67,7 @@ export function ChampionshipTimeline({
       {/* Section header + CountUp aggregate */}
       <div className="mb-12 flex items-baseline gap-6">
         <p className="font-mono text-xs uppercase tracking-[0.25em] text-white/40">
-          Constructors' Titles
+          Constructors&apos; Titles
         </p>
         <CountUp
           from={0}

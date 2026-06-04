@@ -66,7 +66,7 @@ export default function StyleguidePage() {
 
             <Demo label='trigger="mount" — fires on page load, not scroll'>
               <MaskReveal direction="left" trigger="mount" preset="cinematic">
-                <DemoBlock accent>trigger="mount" — played on render</DemoBlock>
+                <DemoBlock accent>trigger=&quot;mount&quot; — played on render</DemoBlock>
               </MaskReveal>
             </Demo>
           </div>
@@ -153,7 +153,7 @@ export default function StyleguidePage() {
           <div className="grid gap-16">
             <Demo label="staggerDelay=0.06 preset='measured' (default) — standings list">
               <SectionReveal staggerDelay={0.06} className="grid gap-3">
-                {['1. Max Verstappen', '2. Lewis Hamilton', '3. Charles Leclerc', '4. Lando Norris', '5. Carlos Sainz'].map((row) => (
+                {['1. Driver A', '2. Driver B', '3. Driver C', '4. Driver D', '5. Driver E'].map((row) => (
                   <div key={row} className="flex items-center gap-4 border-b border-steel/40 pb-3">
                     <span className="font-mono text-sm text-off-white">{row}</span>
                   </div>

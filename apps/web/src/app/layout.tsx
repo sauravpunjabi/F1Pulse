@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next';
-import { Saira_Condensed, JetBrains_Mono } from 'next/font/google';
+import { Saira_Condensed, JetBrains_Mono, Playfair_Display } from 'next/font/google';
 import './globals.css';
 import { Atmosphere } from '@/components/Atmosphere';
 import { QueryProvider } from '@/providers/QueryProvider';
@@ -21,6 +21,14 @@ const jetbrainsMono = JetBrains_Mono({
   display: 'swap',
 });
 
+const playfair = Playfair_Display({
+  weight: ['400', '600', '700', '900'],
+  style: ['normal', 'italic'],
+  subsets: ['latin'],
+  variable: '--font-serif',
+  display: 'swap',
+});
+
 // ── Metadata ──────────────────────────────────────────────────────────────────
 
 export const metadata: Metadata = {
@@ -35,7 +43,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  themeColor: '#050505',
+  themeColor: '#FAF9F6', // changed themeColor to reflect off-white editorial background
 };
 
 // ── Root layout ───────────────────────────────────────────────────────────────
@@ -44,15 +52,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html
       lang="en"
-      className={`bg-black ${sairaCond.variable} ${jetbrainsMono.variable}`}
+      className={`bg-off-white ${sairaCond.variable} ${jetbrainsMono.variable} ${playfair.variable}`}
     >
       <body>
         <QueryProvider>
           <LenisProvider>
             {children}
+            <Atmosphere />
           </LenisProvider>
         </QueryProvider>
-        <Atmosphere />
       </body>
     </html>
   );
