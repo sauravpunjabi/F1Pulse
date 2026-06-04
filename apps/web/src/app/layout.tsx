@@ -52,7 +52,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html
       lang="en"
-      className={`bg-off-white ${sairaCond.variable} ${jetbrainsMono.variable} ${playfair.variable}`}
+      className={`${sairaCond.variable} ${jetbrainsMono.variable} ${playfair.variable}`}
     >
       <body>
         <QueryProvider>

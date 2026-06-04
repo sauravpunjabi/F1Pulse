@@ -110,6 +110,7 @@ export default function HomePage() {
           ready={ready}
           onRevealStart={handleRevealStart}
           onComplete={handleComplete}
+          nextRace={season.data?.nextRace}
         />
       )}
     </>

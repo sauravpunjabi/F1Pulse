@@ -85,7 +85,8 @@
 
 html {
   height: 100%;
-  background-color: var(--bg);
+  background-color: #0c0c0d; /* matches loader slat color — prevents off-white flash before JS paints */
+  scrollbar-width: none;
   color: var(--text-primary);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
@@ -98,6 +99,15 @@ body {
   min-height: 100%;
   background-color: var(--bg);
   color: var(--text-primary);
+  scrollbar-width: none;
+}
+
+body::-webkit-scrollbar {
+  display: none;
+}
+
+html::-webkit-scrollbar {
+  display: none;
 }
 
 /* Smooth scroll handed off to Lenis — keep native scroll behaviour neutral */

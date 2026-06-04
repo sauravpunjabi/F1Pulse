@@ -144,3 +144,157 @@ export function modulateEngine(speedFactor: number) {
 export function isEngineRunning() {
   return active;
 }
+
+let cachedBeepBuffer: AudioBuffer | null = null;
+let beepLoading = false;
+
+async function loadBeepBuffer(ctx: AudioContext): Promise<AudioBuffer | null> {
+  if (cachedBeepBuffer) return cachedBeepBuffer;
+  if (beepLoading) return null;
+  beepLoading = true;
+  try {
+    // Try both /audio/beep.mp3 and /beep.mp3 in the public directory
+    let response = await fetch('/audio/beep.mp3');
+    if (!response.ok) {
+      response = await fetch('/beep.mp3');
+    }
+    if (!response.ok) throw new Error('Beep file not found');
+    const arrayBuffer = await response.arrayBuffer();
+    // Use callback-based decodeAudioData for maximum browser compatibility if needed, or standard promise
+    cachedBeepBuffer = await ctx.decodeAudioData(arrayBuffer);
+    return cachedBeepBuffer;
+  } catch (e) {
+    return null;
+  } finally {
+    beepLoading = false;
+  }
+}
+
+let activeBeepSource: AudioBufferSourceNode | null = null;
+
+export function stopLightBeep() {
+  if (activeBeepSource) {
+    try {
+      activeBeepSource.stop();
+    } catch (e) {
+      // ignore
+    }
+    activeBeepSource.disconnect();
+    activeBeepSource = null;
+  }
+}
+
+export async function playLightBeep(lightIndex: number = 1, isUnlockOnly: boolean = false) {
+  initAudio();
+  if (!audioCtx) return;
+
+  // Resume context if suspended (browser security autoplay policies)
+  if (audioCtx.state === 'suspended') {
+    try {
+      await audioCtx.resume();
+    } catch (e) {
+      // ignore
+    }
+  }
+
+  // Create a silent buffer play to synchronously unlock Web Audio context in user interaction call stack
+  try {
+    const buffer = audioCtx.createBuffer(1, 1, 22050);
+    const source = audioCtx.createBufferSource();
+    source.buffer = buffer;
+    source.connect(audioCtx.destination);
+    source.start(0);
+  } catch (e) {
+    // ignore
+  }
+
+  // Preload the audio file in the background so it is cached and ready
+  loadBeepBuffer(audioCtx).catch(() => {});
+
+  // If it's only unlocking (e.g. click anywhere to unlock), return silently
+  if (isUnlockOnly) {
+    return;
+  }
+
+  // Try to play cached / loaded buffer first
+  try {
+    const buffer = await loadBeepBuffer(audioCtx);
+    if (buffer) {
+      // If it is a full starting light sequence (>1.5s)
+      if (buffer.duration > 1.5) {
+        if (lightIndex === 0) {
+          stopLightBeep();
+
+          const source = audioCtx.createBufferSource();
+          source.buffer = buffer;
+          const gainNode = audioCtx.createGain();
+          gainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
+          source.connect(gainNode);
+          gainNode.connect(audioCtx.destination);
+
+          activeBeepSource = source;
+          source.start(0);
+        }
+        return; // Return early for indices 1..5 as the sequence is already playing
+      } else {
+        // If it's just a single beep, ignore index 0 and play on indices 1..5
+        if (lightIndex === 0) {
+          return;
+        }
+        const source = audioCtx.createBufferSource();
+        source.buffer = buffer;
+        const gainNode = audioCtx.createGain();
+        gainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
+        source.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        source.start(0);
+        return;
+      }
+    }
+  } catch (e) {
+    // ignore and fallback to synthesized tone
+  }
+
+  // If no buffer, ignore index 0 and play synthesized beep at indices 1..5
+  if (lightIndex === 0) {
+    return;
+  }
+
+  // Fallback programmatically synthesized beep
+  const osc = audioCtx.createOscillator();
+  const oscHarmonic = audioCtx.createOscillator();
+  const gainNode = audioCtx.createGain();
+  const gainHarmonic = audioCtx.createGain();
+
+  osc.connect(gainNode);
+  oscHarmonic.connect(gainHarmonic);
+  
+  gainNode.connect(audioCtx.destination);
+  gainHarmonic.connect(audioCtx.destination);
+
+  const now = audioCtx.currentTime;
+
+  // F1 television broadcast starting gantry beep: 960Hz primary pitch + 1920Hz octave harmonic
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(960, now);
+
+  oscHarmonic.type = 'sine';
+  oscHarmonic.frequency.setValueAtTime(1920, now);
+
+  // Envelope details: Instant attack (3ms), sustained 180ms, linear decay (40ms)
+  gainNode.gain.setValueAtTime(0.0, now);
+  gainNode.gain.linearRampToValueAtTime(0.35, now + 0.003);
+  gainNode.gain.setValueAtTime(0.35, now + 0.18);
+  gainNode.gain.linearRampToValueAtTime(0.0, now + 0.22);
+
+  gainHarmonic.gain.setValueAtTime(0.0, now);
+  gainHarmonic.gain.linearRampToValueAtTime(0.05, now + 0.003);
+  gainHarmonic.gain.setValueAtTime(0.05, now + 0.18);
+  gainHarmonic.gain.linearRampToValueAtTime(0.0, now + 0.22);
+
+  osc.start(now);
+  osc.stop(now + 0.23);
+
+  oscHarmonic.start(now);
+  oscHarmonic.stop(now + 0.23);
+}
