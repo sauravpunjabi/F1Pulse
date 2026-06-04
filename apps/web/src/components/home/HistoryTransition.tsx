@@ -37,12 +37,15 @@ export function HistoryTransition() {
   const textModernRef = useRef<HTMLDivElement>(null);
   const textRetroRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLDivElement>(null);
+  const carCanvasRef = useRef<HTMLDivElement>(null);
 
   const curtain1Ref = useRef<HTMLDivElement>(null);
   const curtain2Ref = useRef<HTMLDivElement>(null);
   const curtain3Ref = useRef<HTMLDivElement>(null);
 
   const [hoveredGroup, setHoveredGroup] = useState<'aero' | 'engine' | null>(null);
+
+
 
   // Simulated Telemetry Jitter
   const [telemetry, setTelemetry] = useState<Record<string, number>>({
@@ -137,18 +140,27 @@ export function HistoryTransition() {
         0
       );
 
-      // 5. Fade in the modern hybrid realities text & 3D car
+      // 5. Fade in the modern hybrid realities text & 3D car backdrop
       tl.fromTo(
         textModernRef.current,
-        { opacity: 0, y: 30, pointerEvents: 'none' },
+        { autoAlpha: 0, y: 30 },
         {
-          opacity: 1,
+          autoAlpha: 1,
           y: 0,
-          pointerEvents: 'auto',
           ease: 'power2.out',
           duration: 0.8,
         },
         '-=0.2'
+      );
+      tl.fromTo(
+        carCanvasRef.current,
+        { autoAlpha: 0 },
+        {
+          autoAlpha: 1,
+          ease: 'power2.out',
+          duration: 0.8,
+        },
+        '<'
       );
     }, container);
 
@@ -159,8 +171,16 @@ export function HistoryTransition() {
     <div ref={triggerRef} className="relative w-full overflow-hidden bg-[#111111]">
       <div
         ref={containerRef}
-        className="relative flex h-screen w-full flex-col justify-between px-8 py-16 text-[#FAF9F6] transition-colors duration-300 md:px-16 overflow-hidden"
+        className="relative flex h-screen w-full flex-col justify-between px-8 py-4 sm:py-6 md:py-10 text-[#FAF9F6] transition-colors duration-300 md:px-16 overflow-hidden"
       >
+        {/* Fullscreen 3D Car Scene Background */}
+        <div
+          ref={carCanvasRef}
+          className="absolute inset-0 w-full h-full z-0 opacity-0 pointer-events-none"
+        >
+          <ThreeCarScene hoveredGroup={hoveredGroup} telemetry={telemetry} />
+        </div>
+
         {/* Skewed Parallax curtains sweeping across */}
         <div className="absolute inset-0 pointer-events-none z-20 overflow-hidden">
           <div
@@ -181,65 +201,65 @@ export function HistoryTransition() {
         </div>
 
         {/* Top Info */}
-        <div className="z-10 flex justify-between font-mono text-[0.6rem] uppercase tracking-[0.3em] opacity-40">
+        <div className="z-10 hidden sm:flex flex-row justify-between items-center w-full font-mono text-[0.6rem] uppercase tracking-[0.3em] opacity-40">
           <span>Scene 03 // Transition</span>
           <span>Archival Chronology Entering</span>
         </div>
 
         {/* Centered Transition Content */}
-        <div className="z-10 flex flex-1 flex-col items-center justify-center relative w-full max-w-5xl mx-auto">
-          {/* Text 1: Modern Sans-Serif with 3D Car & Interactive Telemetry */}
+        <div className="z-10 flex flex-1 flex-col items-center justify-center relative w-full max-w-7xl mx-auto">
+          {/* Text 1: Modern Sans-Serif overlay with 3D Car visible behind */}
           <div
             ref={textModernRef}
-            className="absolute inset-0 flex flex-col justify-center items-center max-w-5xl mx-auto px-4 z-10 opacity-0 pointer-events-none"
+            className="absolute inset-0 flex flex-col justify-between items-center w-full max-w-7xl mx-auto px-4 py-12 z-20 opacity-0 pointer-events-none"
           >
-            <div className="text-center mb-6">
-              <span className="font-mono text-xs uppercase tracking-[0.2em] text-accent font-semibold">
+            <div className="text-center mt-4">
+              <span className="font-mono text-[0.6rem] sm:text-xs uppercase tracking-[0.2em] text-accent font-semibold">
                 The Present
               </span>
-              <h3 className="mt-1.5 font-display font-black uppercase text-4xl sm:text-5xl md:text-6xl tracking-tight leading-none text-current">
+              <h3 className="mt-1 font-display font-black uppercase text-3xl sm:text-5xl md:text-6xl lg:text-7xl tracking-tight leading-none text-current">
                 High-Speed Hybrid Realities
               </h3>
-              <p className="mt-2.5 font-sans text-xs md:text-sm text-silver max-w-md mx-auto leading-relaxed">
+              <p className="mt-2 font-sans text-[0.7rem] sm:text-xs md:text-sm text-silver max-w-xl mx-auto leading-relaxed">
                 Every millisecond tracked, every watt calculated. A digital showcase of aerodynamic perfection.
               </p>
             </div>
 
-            {/* 3D Car Model Container */}
-            <div className="w-full max-w-3xl aspect-[21/9] md:aspect-[16/6] min-h-[180px] md:min-h-[260px] relative mb-6">
-              <ThreeCarScene hoveredGroup={hoveredGroup} telemetry={telemetry} />
-            </div>
+            {/* Middle Spacer to let the 3D car show fullscreen */}
+            <div className="flex-1 min-h-[120px] pointer-events-none" />
 
-            {/* Unified Specs Cards */}
-            <div className="flex flex-col gap-4 font-serif text-sm leading-relaxed text-silver md:flex-row md:gap-8 w-full max-w-3xl">
+            {/* Unified Specs Dashboard Panel */}
+            <div className="w-full max-w-4xl bg-black/85 border border-white/10 rounded-2xl p-6 md:p-8 backdrop-blur-md shadow-2xl pointer-events-auto flex flex-col md:flex-row gap-6 md:gap-10 transition-all duration-300">
+              {/* Aerodynamics Column */}
               <div
                 onMouseEnter={() => setHoveredGroup('aero')}
                 onMouseLeave={() => setHoveredGroup(null)}
-                className="flex-1 border-t border-steel/20 pt-3 text-left transition-all duration-300 hover:border-[#27F4D2] group/spec cursor-pointer"
+                className="flex-1 border-t border-white/15 pt-3 text-left transition-all duration-300 hover:border-[#27F4D2] group/spec cursor-pointer"
               >
                 <div className="flex items-center justify-between">
-                  <span className="font-mono text-[0.6rem] uppercase tracking-[0.25em] font-bold text-current group-hover/spec:text-[#27F4D2] transition-colors">
+                  <span className="font-mono text-[0.65rem] uppercase tracking-[0.25em] font-bold text-zinc-400 group-hover/spec:text-[#27F4D2] transition-colors">
                     Aerodynamics
                   </span>
-                  <span className="h-1.5 w-1.5 rounded-full bg-[#27F4D2] shadow-[0_0_6px_#27F4D2] animate-pulse" />
+                  <span className="h-2 w-2 rounded-full bg-[#27F4D2] shadow-[0_0_8px_#27F4D2] animate-pulse" />
                 </div>
-                <p className="mt-1 text-[0.7rem] text-silver group-hover/spec:text-current transition-colors leading-normal">
+                <p className="mt-2 text-[0.7rem] sm:text-xs text-zinc-300 group-hover/spec:text-white transition-colors leading-relaxed">
                   Under-car Venturi tunnels create intense low pressure, pulling the chassis flat to the track surface and minimizing turbulent wake for closer wheel-to-wheel racing.
                 </p>
               </div>
 
+              {/* Power Unit Column */}
               <div
                 onMouseEnter={() => setHoveredGroup('engine')}
                 onMouseLeave={() => setHoveredGroup(null)}
-                className="flex-1 border-t border-steel/20 pt-3 text-left transition-all duration-300 hover:border-[#C9201A] group/spec cursor-pointer"
+                className="flex-1 border-t border-white/15 pt-3 text-left transition-all duration-300 hover:border-[#C9201A] group/spec cursor-pointer"
               >
                 <div className="flex items-center justify-between">
-                  <span className="font-mono text-[0.6rem] uppercase tracking-[0.25em] font-bold text-current group-hover/spec:text-[#C9201A] transition-colors">
+                  <span className="font-mono text-[0.65rem] uppercase tracking-[0.25em] font-bold text-zinc-400 group-hover/spec:text-[#C9201A] transition-colors">
                     Power Unit
                   </span>
-                  <span className="h-1.5 w-1.5 rounded-full bg-[#C9201A] shadow-[0_0_6px_#C9201A] animate-pulse" />
+                  <span className="h-2 w-2 rounded-full bg-[#C9201A] shadow-[0_0_8px_#C9201A] animate-pulse" />
                 </div>
-                <p className="mt-1 text-[0.7rem] text-silver group-hover/spec:text-current transition-colors leading-normal">
+                <p className="mt-2 text-[0.7rem] sm:text-xs text-zinc-300 group-hover/spec:text-white transition-colors leading-relaxed">
                   Hyper-efficient hybrid twin-turbochargers pairing thermal energy recovery (MGU-H) and kinetic energy harvesting (MGU-K) systems to deploy over 1000 horsepower.
                 </p>
               </div>
@@ -249,7 +269,7 @@ export function HistoryTransition() {
           {/* Text 2: Classic Serif (Fades in on dark background) */}
           <div
             ref={textRetroRef}
-            className="absolute text-center max-w-3xl px-4 opacity-100 pointer-events-auto"
+            className="absolute text-center max-w-3xl px-4 z-10 opacity-100 pointer-events-auto"
             style={{ pointerEvents: 'auto' }}
           >
             <span className="font-mono text-xs uppercase tracking-[0.25em] text-accent font-semibold">
@@ -287,7 +307,7 @@ export function HistoryTransition() {
             <span>Est. 1950</span>
           </div>
         </div>
-      </div>
+        </div>
     </div>
   );
 }

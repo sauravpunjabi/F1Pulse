@@ -162,44 +162,44 @@ export function EraTimeline() {
           return (
             <div
               key={era.id}
-              className={`inline-flex flex-col justify-between h-full w-screen px-8 py-20 md:px-16 lg:py-24 ${era.themeClass}`}
+              className={`flex-shrink-0 inline-flex flex-col justify-between h-full w-screen px-6 py-16 md:px-16 lg:py-24 whitespace-normal ${era.themeClass}`}
             >
               {/* Top Banner info */}
-              <div className="flex justify-between items-center border-b border-current/10 pb-4 font-mono text-[0.6rem] uppercase tracking-[0.3em] opacity-50">
+              <div className="flex justify-between items-center border-b border-current/10 pb-3 font-mono text-[0.6rem] uppercase tracking-[0.3em] opacity-50">
                 <span>Timeline // Era 0{index + 1}</span>
                 <span>{era.years}</span>
               </div>
 
               {/* Central Details and Storytelling */}
-              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-12 my-auto">
-                <div className="max-w-xl space-y-6">
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 md:gap-12 my-auto">
+                <div className="max-w-xl space-y-4 md:space-y-6">
                   {/* Years Tag */}
-                  <span className="font-mono text-xs font-semibold tracking-[0.25em] text-accent">
+                  <span className="font-mono text-[0.65rem] sm:text-xs font-semibold tracking-[0.25em] text-accent">
                     {era.years}
                   </span>
                   
                   {/* Era Title */}
-                  <h3 className={`text-4xl sm:text-6xl md:text-7xl leading-[0.9] ${era.fontClass}`}>
+                  <h3 className={`text-3xl sm:text-5xl md:text-6xl lg:text-7xl leading-[0.9] whitespace-normal ${era.fontClass}`}>
                     {era.name}
                   </h3>
                   
                   {/* Era Subtitle */}
-                  <h4 className="font-serif italic text-lg opacity-80 whitespace-normal">
+                  <h4 className="font-serif italic text-sm sm:text-base md:text-lg opacity-80 whitespace-normal">
                     {era.subtitle}
                   </h4>
                   
                   {/* Era Description */}
-                  <p className="font-sans text-sm md:text-base leading-relaxed opacity-75 max-w-lg whitespace-normal">
+                  <p className="font-sans text-xs sm:text-sm md:text-base leading-relaxed opacity-75 max-w-lg whitespace-normal">
                     {era.description}
                   </p>
                 </div>
 
                 {/* Dynamic Champions Sub-list for Era */}
-                <div className="flex flex-col gap-4 min-w-[280px] lg:min-w-[400px]">
+                <div className="flex flex-col gap-3 md:gap-4 w-full max-w-md lg:max-w-none lg:min-w-[400px]">
                   <span className="font-mono text-[0.55rem] uppercase tracking-[0.25em] opacity-40">
                     Era Champions Snapshot
                   </span>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-2 sm:gap-4">
                     {keyChampions.length > 0 ? (
                       keyChampions.map((champion) => (
                         <ChampionCard
@@ -254,30 +254,30 @@ function ChampionCard({
 
   return (
     <div
-      className={`border p-4 rounded-sm flex flex-col justify-between transition-all duration-300 ${cardBorderColor} ${cardBgColor}`}
+      className={`border p-2 sm:p-4 rounded-sm flex flex-col justify-between transition-all duration-300 ${cardBorderColor} ${cardBgColor}`}
     >
-      <div className="flex justify-between items-start">
-        <span className="font-mono text-lg font-bold tabular-nums">
+      <div className="flex justify-between items-start gap-1">
+        <span className="font-mono text-sm sm:text-lg font-bold tabular-nums">
           {champion.season}
         </span>
-        <span className="font-mono text-[0.5rem] uppercase opacity-40">
+        <span className="font-mono text-[0.45rem] sm:text-[0.5rem] uppercase opacity-40 mt-1">
           {champion.wins} wins
         </span>
       </div>
 
-      <div className="mt-3">
+      <div className="mt-2 sm:mt-3">
         {/* Champion Driver Name */}
-        <p className={`text-base font-bold uppercase truncate ${era.fontClass}`}>
+        <p className={`text-xs sm:text-base font-bold uppercase truncate ${era.fontClass}`}>
           {champion.driver.familyName}
         </p>
         
         {/* Team */}
-        <p className="font-mono text-[0.55rem] uppercase opacity-50 truncate">
+        <p className="font-mono text-[0.48rem] sm:text-[0.55rem] uppercase opacity-50 truncate">
           {champion.constructors[0]?.name ?? 'Independent'}
         </p>
       </div>
 
-      <div className="mt-2 pt-2 border-t border-current/5 flex justify-between font-mono text-[0.5rem] opacity-40">
+      <div className="mt-1.5 pt-1.5 border-t border-current/5 flex justify-between font-mono text-[0.45rem] sm:text-[0.5rem] opacity-40">
         <span>POINTS:</span>
         <span className="tabular-nums font-bold">{champion.points} PTS</span>
       </div>

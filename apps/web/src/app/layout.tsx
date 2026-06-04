@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import { Saira_Condensed, JetBrains_Mono, Playfair_Display } from 'next/font/google';
 import './globals.css';
 import { Atmosphere } from '@/components/Atmosphere';
+import { GlobalCursor } from '@/components/GlobalCursor';
 import { QueryProvider } from '@/providers/QueryProvider';
 import { LenisProvider } from '@/providers/LenisProvider';
 
@@ -59,6 +60,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <LenisProvider>
             {children}
             <Atmosphere />
+            <GlobalCursor />
           </LenisProvider>
         </QueryProvider>
       </body>

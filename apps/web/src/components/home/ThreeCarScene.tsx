@@ -93,23 +93,12 @@ const HOTSPOTS_3D: Hotspot3D[] = [
 function Model() {
   const { scene } = useGLTF('/ferrari_sf-25.glb');
   
-  // Custom materials adjustments to make the Ferrari paint shine beautifully in WebGL!
+  // Enable shadow casting and receiving for the model meshes
   useEffect(() => {
     scene.traverse((child: any) => {
       if (child.isMesh) {
         child.castShadow = true;
         child.receiveShadow = true;
-        
-        // Boost metallic red shader properties if materials exist
-        if (child.material) {
-          const matName = child.material.name.toLowerCase();
-          if (matName.includes('red') || matName.includes('paint') || matName.includes('body') || matName.includes('carrosserie')) {
-            child.material.clearcoat = 1.0;
-            child.material.clearcoatRoughness = 0.08;
-            child.material.roughness = 0.12;
-            child.material.metalness = 0.85;
-          }
-        }
       }
     });
   }, [scene]);
@@ -148,14 +137,11 @@ export default function ThreeCarScene({ hoveredGroup, telemetry }: ThreeCarScene
   const [hoveredHotspot, setHoveredHotspot] = useState<string | null>(null);
 
   return (
-    <div className="w-full h-full min-h-[400px] relative rounded-2xl overflow-hidden border border-steel/20 shadow-2xl">
-      {/* HUD scanning layout */}
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.015)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.015)_1px,transparent_1px)] bg-[size:32px_32px] z-10" />
-      
+    <div className="w-full h-full relative overflow-hidden">
       {/* 3D Canvas */}
       <Canvas
         shadows
-        camera={{ position: [2.1, 0.9, 2.7], fov: 35 }}
+        camera={{ position: [2.5, 0.8, 3.2], fov: 32 }}
         gl={{ antialias: true, alpha: true }}
         style={{ width: '100%', height: '100%' }}
       >
@@ -177,90 +163,89 @@ export default function ThreeCarScene({ hoveredGroup, telemetry }: ThreeCarScene
         />
         <pointLight position={[0, 4, 2]} intensity={1.2} />
 
-        {/* Tech Grid Floor */}
-        <gridHelper args={[24, 24, '#C9201A', '#555555']} position={[0, -0.58, 0]} />
-
         <Suspense fallback={<Loader />}>
-          <Center position={[0, 0, 0]}>
-            <Model />
-          </Center>
+          <group scale={2.2} position={[0, -0.9, 0]}>
+            <Center position={[0, 0, 0]}>
+              <Model />
+            </Center>
 
-          {/* Render 3D Hotspots */}
-          {HOTSPOTS_3D.map((hotspot) => {
-            const isGroupHovered = hoveredGroup === hotspot.category;
-            const isSelfHovered = hoveredHotspot === hotspot.id;
-            const scaleMultiplier = isSelfHovered ? 1.6 : isGroupHovered ? 1.3 : 1.0;
-            
-            return (
-              <mesh 
-                key={hotspot.id} 
-                position={hotspot.position}
-                onPointerOver={(e) => {
-                  e.stopPropagation();
-                  setHoveredHotspot(hotspot.id);
-                }}
-                onPointerOut={() => setHoveredHotspot(null)}
-              >
-                {/* 3D Pulse Sphere */}
-                <sphereGeometry args={[0.045 * scaleMultiplier, 16, 16]} />
-                <meshBasicMaterial 
-                  color={hotspot.color} 
-                  transparent
-                  opacity={0.8}
-                />
+            {/* Render 3D Hotspots */}
+            {HOTSPOTS_3D.map((hotspot) => {
+              const isGroupHovered = hoveredGroup === hotspot.category;
+              const isSelfHovered = hoveredHotspot === hotspot.id;
+              const scaleMultiplier = isSelfHovered ? 1.6 : isGroupHovered ? 1.3 : 1.0;
+              
+              return (
+                <mesh 
+                  key={hotspot.id} 
+                  position={hotspot.position}
+                  onPointerOver={(e) => {
+                    e.stopPropagation();
+                    setHoveredHotspot(hotspot.id);
+                  }}
+                  onPointerOut={() => setHoveredHotspot(null)}
+                >
+                  {/* 3D Pulse Sphere */}
+                  <sphereGeometry args={[0.045 * scaleMultiplier, 16, 16]} />
+                  <meshBasicMaterial 
+                    color={hotspot.color} 
+                    transparent
+                    opacity={0.8}
+                  />
 
-                {/* Outer Ring */}
-                <mesh>
-                  <torusGeometry args={[0.07 * scaleMultiplier, 0.006, 8, 24]} />
-                  <meshBasicMaterial color={hotspot.color} transparent opacity={0.4} />
-                </mesh>
+                  {/* Outer Ring */}
+                  <mesh>
+                    <torusGeometry args={[0.07 * scaleMultiplier, 0.006, 8, 24]} />
+                    <meshBasicMaterial color={hotspot.color} transparent opacity={0.4} />
+                  </mesh>
 
-                {/* Floating HTML Tooltip overlay */}
-                {isSelfHovered && (
-                  <Html distanceFactor={4.5} center zIndexRange={[50, 100]}>
-                    <div 
-                      className="w-72 rounded-xl p-4 shadow-[0_20px_50px_rgba(0,0,0,0.6)] backdrop-blur-md font-sans pointer-events-none select-none"
-                      style={{ 
-                        transform: 'translateY(-20px)',
-                        backgroundColor: '#111111',
-                        color: '#ffffff',
-                        border: '1px solid rgba(255, 255, 255, 0.15)'
-                      }}
-                    >
-                      <div className="flex items-center justify-between border-b border-white/[0.08] pb-1.5 mb-2 font-mono text-[0.6rem]">
-                        <span 
-                          className="uppercase tracking-wider font-bold"
-                          style={{ color: hotspot.color }}
-                        >
-                          {hotspot.category === 'aero' ? 'Aerodynamics' : 'Power Unit'}
-                        </span>
-                        <div className="flex items-center gap-1 text-zinc-400">
-                          <span>{hotspot.metric}:</span>
-                          <span className="text-white font-bold tabular-nums">
-                            {telemetry[hotspot.id]}
-                          </span>
-                          <span>{hotspot.unit}</span>
-                        </div>
-                      </div>
-                      <h4 className="font-display text-sm font-bold uppercase tracking-wide mb-1 text-white">
-                        {hotspot.title}
-                      </h4>
-                      <p className="text-[0.65rem] text-zinc-300 leading-relaxed font-light">
-                        {hotspot.desc}
-                      </p>
-                      {/* Arrow tail */}
+                  {/* Floating HTML Tooltip overlay */}
+                  {isSelfHovered && (
+                    <Html distanceFactor={4.5} center zIndexRange={[50, 100]}>
                       <div 
-                        className="absolute bottom-[-4px] left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 border-r border-b border-white/10"
-                        style={{
-                          backgroundColor: '#111111'
+                        className="w-72 rounded-xl p-4 shadow-[0_20px_50px_rgba(0,0,0,0.6)] backdrop-blur-md font-sans pointer-events-none select-none"
+                        style={{ 
+                          transform: 'translateY(-20px)',
+                          backgroundColor: '#111111',
+                          color: '#ffffff',
+                          border: '1px solid rgba(255, 255, 255, 0.15)'
                         }}
-                      />
-                    </div>
-                  </Html>
-                )}
-              </mesh>
-            );
-          })}
+                      >
+                        <div className="flex items-center justify-between border-b border-white/[0.08] pb-1.5 mb-2 font-mono text-[0.6rem]">
+                          <span 
+                            className="uppercase tracking-wider font-bold"
+                            style={{ color: hotspot.color }}
+                          >
+                            {hotspot.category === 'aero' ? 'Aerodynamics' : 'Power Unit'}
+                          </span>
+                          <div className="flex items-center gap-1 text-zinc-400">
+                            <span>{hotspot.metric}:</span>
+                            <span className="text-white font-bold tabular-nums">
+                              {telemetry[hotspot.id]}
+                            </span>
+                            <span>{hotspot.unit}</span>
+                          </div>
+                        </div>
+                        <h4 className="font-display text-sm font-bold uppercase tracking-wide mb-1 text-white">
+                          {hotspot.title}
+                        </h4>
+                        <p className="text-[0.65rem] text-zinc-300 leading-relaxed font-light">
+                          {hotspot.desc}
+                        </p>
+                        {/* Arrow tail */}
+                        <div 
+                          className="absolute bottom-[-4px] left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 border-r border-b border-white/10"
+                          style={{
+                            backgroundColor: '#111111'
+                          }}
+                        />
+                      </div>
+                    </Html>
+                  )}
+                </mesh>
+              );
+            })}
+          </group>
         </Suspense>
 
         <OrbitControls 
