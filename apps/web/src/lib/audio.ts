@@ -153,10 +153,10 @@ async function loadBeepBuffer(ctx: AudioContext): Promise<AudioBuffer | null> {
   if (beepLoading) return null;
   beepLoading = true;
   try {
-    // Try both /audio/beep.mp3 and /beep.mp3 in the public directory
-    let response = await fetch('/audio/beep.mp3');
+    // Try both /beep.mp3 and /audio/beep.mp3 in the public directory (beep.mp3 is directly in public/)
+    let response = await fetch('/beep.mp3');
     if (!response.ok) {
-      response = await fetch('/beep.mp3');
+      response = await fetch('/audio/beep.mp3');
     }
     if (!response.ok) throw new Error('Beep file not found');
     const arrayBuffer = await response.arrayBuffer();

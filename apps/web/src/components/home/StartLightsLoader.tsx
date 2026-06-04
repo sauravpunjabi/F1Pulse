@@ -25,7 +25,7 @@ import { playLightBeep, stopLightBeep } from '@/lib/audio';
 import type { RaceScheduleDto } from '@/lib/api';
 
 // Pre-defined minimalist SVG track outlines scaled to fit 300x200 viewBox from f1-circuits repo
-const CIRCUIT_MAPS: Record<string, { path: string; viewBox: string }> = {
+export const CIRCUIT_MAPS: Record<string, { path: string; viewBox: string }> = {
   albert_park: {
     path: 'M 137.2,135.7 L 129.6,128.3 L 118.4,116.8 L 117.8,116.2 L 117.5,115.3 L 117.6,114.9 L 117.7,114.5 L 118.1,113.6 L 118.8,112.5 L 119.1,111.0 L 119.4,109.3 L 119.4,108.0 L 119.0,105.5 L 118.5,104.2 L 117.8,102.8 L 116.9,101.8 L 114.9,99.8 L 112.5,97.6 L 109.2,94.4 L 105.1,90.0 L 103.5,88.3 L 99.1,82.9 L 97.0,80.0 L 94.8,76.5 L 90.5,69.0 L 89.4,66.9 L 88.8,65.3 L 88.9,64.5 L 89.2,63.8 L 90.1,63.4 L 93.2,62.9 L 98.9,61.7 L 99.5,61.4 L 100.0,61.2 L 100.2,60.8 L 100.7,59.5 L 100.7,58.2 L 100.4,47.1 L 100.2,43.0 L 100.3,42.6 L 101.5,41.2 L 102.6,40.4 L 111.1,34.2 L 113.0,33.2 L 121.8,29.6 L 125.1,28.4 L 128.1,26.6 L 130.4,25.2 L 131.4,25.0 L 132.2,25.0 L 133.0,25.4 L 133.9,26.6 L 135.1,27.7 L 136.8,28.8 L 138.9,29.6 L 141.6,29.9 L 144.0,30.0 L 146.1,30.4 L 148.4,31.2 L 150.4,32.1 L 152.7,33.8 L 154.2,35.2 L 155.7,37.1 L 157.1,39.6 L 157.9,42.1 L 158.4,44.0 L 158.7,45.6 L 160.7,56.8 L 160.7,58.2 L 160.5,59.9 L 159.9,61.7 L 159.3,63.1 L 158.1,64.8 L 157.1,66.1 L 155.9,67.7 L 155.3,68.8 L 154.8,70.1 L 154.4,71.6 L 152.1,83.9 L 151.9,85.4 L 151.8,87.2 L 151.8,88.9 L 152.0,91.8 L 152.3,94.2 L 152.9,96.8 L 153.7,99.4 L 154.7,101.6 L 155.8,103.6 L 157.5,106.4 L 158.7,108.1 L 161.1,110.6 L 168.8,117.5 L 170.1,118.5 L 171.2,119.1 L 172.1,119.5 L 173.7,120.0 L 175.3,120.1 L 177.2,120.1 L 178.9,120.0 L 180.6,120.0 L 182.1,120.0 L 183.3,120.3 L 184.5,120.9 L 185.3,121.4 L 186.8,122.7 L 195.4,130.0 L 198.6,132.7 L 200.2,134.6 L 201.3,135.9 L 202.6,137.9 L 203.9,140.9 L 205.2,144.6 L 208.5,156.4 L 210.6,163.8 L 211.0,165.9 L 211.2,167.0 L 211.2,167.6 L 210.7,167.9 L 209.1,168.5 L 201.4,171.6 L 193.5,174.7 L 192.9,174.9 L 192.0,175.0 L 190.8,174.9 L 189.5,174.4 L 188.3,173.6 L 187.5,172.9 L 186.8,171.8 L 182.2,163.2 L 179.3,158.6 L 178.9,158.0 L 178.6,157.6 L 178.2,157.5 L 177.5,157.4 L 177.0,157.7 L 171.9,163.5 L 171.2,164.2 L 170.5,164.6 L 169.5,165.0 L 168.7,165.2 L 167.9,165.2 L 167.0,165.0 L 165.7,164.6 L 164.8,163.9 L 164.4,163.5 L 137.2,135.7 Z',
     viewBox: '0 0 300 200',
@@ -142,6 +142,7 @@ export function StartLightsLoader({
   const [phase, setPhase] = useState<
     'intro-fade-in' | 'intro-hold' | 'intro-fade-out' | 'breathing' | 'countdown' | 'hold' | 'out' | 'done'
   >('intro-fade-in');
+  const [breathingElapsed, setBreathingElapsed] = useState(false);
 
   const circuitId = nextRace?.circuit?.id || 'default';
   const circuitInfo = CIRCUIT_MAPS[circuitId] || CIRCUIT_MAPS['default'];
@@ -171,19 +172,13 @@ export function StartLightsLoader({
       });
       window.removeEventListener('click', unlock);
       window.removeEventListener('touchstart', unlock);
-      window.removeEventListener('keydown', unlock);
-      window.removeEventListener('mousedown', unlock);
     };
     window.addEventListener('click', unlock);
     window.addEventListener('touchstart', unlock);
-    window.addEventListener('keydown', unlock);
-    window.addEventListener('mousedown', unlock);
 
     return () => {
       window.removeEventListener('click', unlock);
       window.removeEventListener('touchstart', unlock);
-      window.removeEventListener('keydown', unlock);
-      window.removeEventListener('mousedown', unlock);
       stopLightBeep();
     };
   }, []);
@@ -197,14 +192,33 @@ export function StartLightsLoader({
     return () => clearTimeout(timer);
   }, [phase]);
 
-  // Breathing space timer (300-400ms before lights countdown starts)
+  // Optional hold phase automatic timeout: transition to fade-out after 450ms if not clicked
   useEffect(() => {
-    if (phase !== 'breathing') return;
+    if (phase !== 'intro-hold') return;
     const timer = setTimeout(() => {
-      setPhase('countdown');
+      setPhase('intro-fade-out');
+    }, 450);
+    return () => clearTimeout(timer);
+  }, [phase]);
+
+  // Breathing space timer (350ms duration)
+  useEffect(() => {
+    if (phase !== 'breathing') {
+      setBreathingElapsed(false);
+      return;
+    }
+    const timer = setTimeout(() => {
+      setBreathingElapsed(true);
     }, 350);
     return () => clearTimeout(timer);
   }, [phase]);
+
+  // Transition to countdown phase only when breathing has elapsed AND track map data is ready
+  useEffect(() => {
+    if (phase === 'breathing' && breathingElapsed && ready) {
+      setPhase('countdown');
+    }
+  }, [phase, breathingElapsed, ready]);
 
   // Countdown timer sequence aligned with beep.mp3 peak timestamps
   useEffect(() => {
@@ -247,7 +261,7 @@ export function StartLightsLoader({
       }, 3940)
     );
 
-    // Light 5 ON at 4940ms -> transition to hold phase
+    // Light 5 ON at 4940ms -> transition to hold phase (audio continues playing)
     timers.push(
       window.setTimeout(() => {
         setCurrentLight(5);
@@ -258,7 +272,6 @@ export function StartLightsLoader({
 
     return () => {
       timers.forEach((t) => window.clearTimeout(t));
-      stopLightBeep();
     };
   }, [phase]);
 
@@ -353,17 +366,15 @@ export function StartLightsLoader({
               <path d={circuitInfo.path} className="opacity-30" />
               
               {/* Progressive track glow overlay based on lit gantry lights */}
-              <motion.path
-                d={circuitInfo.path}
-                className="stroke-accent drop-shadow-[0_0_8px_rgba(255,24,35,0.7)]"
-                initial={{ pathLength: 0 }}
-                animate={{ 
-                  pathLength: (phase === 'intro-fade-in' || phase === 'intro-hold' || phase === 'intro-fade-out' || phase === 'breathing')
-                    ? 0
-                    : (phase === 'hold' ? 1 : currentLight / 5)
-                }}
-                transition={{ duration: 0.8, ease: 'easeOut' }}
-              />
+              {(phase === 'countdown' || phase === 'hold' || phase === 'out') && (
+                <motion.path
+                  d={circuitInfo.path}
+                  className="stroke-accent drop-shadow-[0_0_8px_rgba(255,24,35,0.7)]"
+                  initial={{ pathLength: 0 }}
+                  animate={{ pathLength: phase === 'hold' ? 1 : currentLight / 5 }}
+                  transition={{ duration: 0.8, ease: 'easeOut' }}
+                />
+              )}
             </svg>
           </div>
         )}

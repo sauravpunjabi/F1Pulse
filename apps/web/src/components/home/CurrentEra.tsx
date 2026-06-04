@@ -2,8 +2,45 @@
 
 import { useSeasonCurrent, useDriverStandings, useConstructorStandings } from '@/lib/api';
 import { useCountdown } from './useCountdown';
-import Image from 'next/image';
 import { SplitTextReveal } from '@/components/primitives';
+import dynamic from 'next/dynamic';
+
+// Dynamically load the client-only 3D track scene
+const ThreeTrackScene = dynamic(() => import('./ThreeTrackScene'), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-full min-h-[400px] flex items-center justify-center bg-[#0a0a0b] border border-steel/20 rounded-2xl shadow-2xl">
+      <div className="font-mono text-[0.65rem] text-accent tracking-[0.25em] animate-pulse uppercase">
+        CALIBRATING TRACK GEOMETRY...
+      </div>
+    </div>
+  ),
+});
+
+const TEAM_COLORS: Record<string, string> = {
+  'Red Bull Racing': '#3671C6',
+  'Red Bull': '#3671C6',
+  'Ferrari': '#E8002D',
+  'Mercedes': '#27F4D2',
+  'McLaren': '#FF8000',
+  'Aston Martin': '#229971',
+  'Alpine': '#0093CC',
+  'Haas F1 Team': '#B6BABD',
+  'Haas': '#B6BABD',
+  'Williams': '#37BEDD',
+  'Kick Sauber': '#52E252',
+  'Sauber': '#52E252',
+  'RB': '#6692FF',
+  'Visa Cash App RB': '#6692FF',
+};
+
+const getTeamColor = (teamName: string) => {
+  if (!teamName) return '#7A7872';
+  const normalized = Object.keys(TEAM_COLORS).find(
+    (key) => teamName.toLowerCase().includes(key.toLowerCase())
+  );
+  return normalized ? TEAM_COLORS[normalized] : '#7A7872';
+};
 
 export function CurrentEra() {
   const seasonQuery = useSeasonCurrent();
@@ -39,30 +76,27 @@ export function CurrentEra() {
       <div className="grid grid-cols-1 gap-16 lg:grid-cols-12 lg:gap-12">
         {/* Left Column: Massive Editorial Image & Regulation Sub-box */}
         <div className="flex flex-col gap-8 lg:col-span-7">
-          <div className="relative aspect-[16/10] w-full overflow-hidden border border-steel/20 bg-iron/20">
-            <Image
-              src="/modern_f1_car.png"
-              alt="Modern F1 Ground Effect Car"
-              fill
-              priority
-              className="object-cover transition-transform duration-700 hover:scale-105"
-            />
-            <div className="absolute bottom-4 left-4 bg-black/90 px-4 py-2 text-[0.6rem] font-mono uppercase tracking-[0.2em] text-white">
-              Ground Effect Spec · 2026 Season
-            </div>
+          <div className="w-full aspect-[16/10] relative">
+            <ThreeTrackScene circuitId={nextRace?.circuit.id} circuitName={nextRace?.name} />
           </div>
 
-          <div className="flex flex-col gap-4 font-serif text-base leading-relaxed text-silver md:flex-row md:gap-12">
-            <div className="flex-1 border-t border-steel/30 pt-4">
-              <span className="font-mono text-[0.6rem] uppercase tracking-[0.25em] text-black font-semibold">Aerodynamics</span>
-              <p className="mt-2">
-                Under-car tunnels create low pressure, pulling the chassis flat to the track surface and minimizing turbulent wake for closer racing.
+          {/* Unified Track Specification Cards */}
+          <div className="flex flex-col gap-6 font-serif text-base leading-relaxed text-silver md:flex-row md:gap-8">
+            <div className="flex-1 border-t-2 border-steel/30 pt-4 text-left">
+              <span className="font-mono text-[0.65rem] uppercase tracking-[0.25em] font-bold text-black">
+                Circuit DNA
+              </span>
+              <p className="mt-2 text-xs md:text-sm text-silver leading-relaxed">
+                High speed thresholds, mechanical grip stress levels, and precise corner entries define the track characteristics of the upcoming Grand Prix.
               </p>
             </div>
-            <div className="flex-1 border-t border-steel/30 pt-4">
-              <span className="font-mono text-[0.6rem] uppercase tracking-[0.25em] text-black font-semibold">Power Unit</span>
-              <p className="mt-2">
-                Hyper-efficient hybrid turbocharger units pairing MGU-K energy harvesting systems with sustainable, high-octane combustion fuels.
+
+            <div className="flex-1 border-t-2 border-steel/30 pt-4 text-left">
+              <span className="font-mono text-[0.65rem] uppercase tracking-[0.25em] font-bold text-black">
+                Telemetry Target
+              </span>
+              <p className="mt-2 text-xs md:text-sm text-silver leading-relaxed">
+                Optimal setup demands a compromise between straightline velocity efficiency (DRS gain) and aerodynamic downforce recovery in slow, technical sectors.
               </p>
             </div>
           </div>
@@ -70,50 +104,76 @@ export function CurrentEra() {
 
         {/* Right Column: Live Data and Standings Widgets */}
         <div className="flex flex-col gap-12 lg:col-span-5">
-          {/* Next Race Widget */}
-          <div className="border-t-2 border-black pt-6">
-            <span className="font-mono text-[0.6rem] uppercase tracking-[0.25em] text-accent font-bold">
-              UPCOMING GRAND PRIX
-            </span>
+          {/* Next Race Timing Gantry Card */}
+          <div className="relative overflow-hidden bg-[#121214] text-white border border-white/[0.08] shadow-2xl rounded-2xl p-6">
+            <div className="absolute top-0 right-0 h-16 w-16 bg-gradient-to-br from-accent/20 to-transparent rotate-45 translate-x-8 -translate-y-8" />
+            <div className="absolute top-0 left-0 w-1.5 h-12 bg-accent" />
+
+            <div className="flex items-center justify-between mb-4">
+              <span className="font-mono text-[0.55rem] uppercase tracking-[0.25em] text-accent font-bold flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full bg-accent animate-ping" />
+                LIVE TIMING FEED
+              </span>
+              <span className="font-mono text-[0.55rem] text-white/40 uppercase tracking-widest">
+                ROUND {seasonQuery.data?.nextRace ? '08' : '--'}
+              </span>
+            </div>
+
             {nextRace ? (
-              <div className="mt-4">
-                <h3 className="font-serif text-3xl font-semibold leading-tight tracking-tight">
+              <div>
+                <h3 className="font-serif text-2xl font-bold leading-none tracking-tight text-white mb-1.5">
                   {nextRace.name}
                 </h3>
-                <p className="font-mono text-xs text-silver mt-1">
-                  {nextRace.circuit.name} {location ? `· ${location}` : ''}
+                <p className="font-mono text-[0.6rem] text-white/50 uppercase tracking-wider mb-6">
+                  {nextRace.circuit.name} {location ? `// ${location}` : ''}
                 </p>
 
-                {/* Elegantly integrated countdown */}
+                {/* Gantry Clock display */}
                 {countdown && !countdown.isPast ? (
-                  <div className="mt-6 flex items-baseline gap-6 font-mono border-y border-steel/20 py-4">
+                  <div className="grid grid-cols-3 gap-2 border-y border-white/[0.08] py-4 text-center font-mono">
                     <div className="flex flex-col">
-                      <span className="text-3xl font-bold tabular-nums">{countdown.days}</span>
-                      <span className="text-[0.55rem] text-silver uppercase tracking-wider">Days</span>
+                      <span className="text-3xl font-extrabold text-white tracking-tight drop-shadow-[0_0_8px_rgba(255,255,255,0.2)] tabular-nums">
+                        {countdown.days}
+                      </span>
+                      <span className="text-[0.5rem] text-white/40 uppercase tracking-widest mt-1">Days</span>
                     </div>
-                    <span className="text-xl text-steel/40">:</span>
-                    <div className="flex flex-col">
-                      <span className="text-3xl font-bold tabular-nums">
+                    <div className="flex flex-col border-x border-white/[0.08]">
+                      <span className="text-3xl font-extrabold text-white tracking-tight drop-shadow-[0_0_8px_rgba(255,255,255,0.2)] tabular-nums">
                         {String(countdown.hours).padStart(2, '0')}
                       </span>
-                      <span className="text-[0.55rem] text-silver uppercase tracking-wider">Hours</span>
+                      <span className="text-[0.5rem] text-white/40 uppercase tracking-widest mt-1">Hours</span>
                     </div>
-                    <span className="text-xl text-steel/40">:</span>
                     <div className="flex flex-col">
-                      <span className="text-3xl font-bold tabular-nums">
+                      <span className="text-3xl font-extrabold text-accent drop-shadow-[0_0_8px_rgba(201,32,26,0.5)] tracking-tight tabular-nums">
                         {String(countdown.minutes).padStart(2, '0')}
                       </span>
-                      <span className="text-[0.55rem] text-silver uppercase tracking-wider">Mins</span>
+                      <span className="text-[0.5rem] text-accent/80 uppercase tracking-widest mt-1">Mins</span>
                     </div>
                   </div>
                 ) : (
-                  <div className="mt-6 py-3 font-mono text-sm uppercase tracking-widest text-accent font-semibold">
-                    RACE IN PROGRESS / LIGHTS OUT
+                  <div className="py-4 border-y border-white/[0.08] font-mono text-xs uppercase tracking-widest text-accent font-bold text-center animate-pulse">
+                    RACE IN PROGRESS // LIGHTS OUT
                   </div>
                 )}
+
+                {/* Simulated weather and telemetry */}
+                <div className="mt-4 grid grid-cols-3 gap-2 font-mono text-[0.6rem] text-white/50">
+                  <div>
+                    <span className="block text-white/30 uppercase">Air Temp</span>
+                    <span className="font-bold text-white">24.2 °C</span>
+                  </div>
+                  <div className="border-x border-white/[0.08] px-2 text-center">
+                    <span className="block text-white/30 uppercase">Track Temp</span>
+                    <span className="font-bold text-white">35.8 °C</span>
+                  </div>
+                  <div className="text-right">
+                    <span className="block text-white/30 uppercase">Humidity</span>
+                    <span className="font-bold text-white">42 %</span>
+                  </div>
+                </div>
               </div>
             ) : (
-              <p className="mt-4 font-mono text-sm text-silver">Schedule currently unavailable.</p>
+              <p className="font-mono text-xs text-white/40 py-4">Schedule currently unavailable.</p>
             )}
           </div>
 
@@ -121,31 +181,47 @@ export function CurrentEra() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 border-t border-steel/30 pt-8">
             {/* Drivers Standings */}
             <div>
-              <span className="font-mono text-[0.6rem] uppercase tracking-[0.25em] text-black font-bold">
-                DRIVERS LEADERBOARD
-              </span>
-              <div className="mt-4 flex flex-col gap-4">
+              <div className="flex items-center justify-between mb-4">
+                <span className="font-mono text-[0.6rem] uppercase tracking-[0.25em] text-black font-bold">
+                  DRIVERS LEADERBOARD
+                </span>
+                <span className="font-mono text-[0.55rem] text-silver uppercase">TOP 3</span>
+              </div>
+              <div className="flex flex-col gap-3">
                 {topDrivers.length > 0 ? (
-                  topDrivers.map((item, idx) => (
-                    <div key={item.driver.id} className="flex justify-between items-end border-b border-steel/10 pb-2">
-                      <div className="flex items-center gap-3">
-                        <span className="font-mono text-xs text-silver tabular-nums w-4">
-                          {idx + 1}
-                        </span>
-                        <div>
-                          <p className="font-display font-bold text-lg uppercase leading-none text-black">
-                            {item.driver.familyName}
-                          </p>
-                          <p className="font-mono text-[0.55rem] uppercase text-silver">
-                            {item.constructors[0]?.name ?? 'Independent'}
-                          </p>
+                  topDrivers.map((item, idx) => {
+                    const teamName = item.constructors[0]?.name ?? '';
+                    const teamColor = getTeamColor(teamName);
+                    return (
+                      <div
+                        key={item.driver.id}
+                        className="group/row relative flex justify-between items-center bg-white/40 border border-steel/10 rounded-xl pl-4 pr-4 py-3 transition-all duration-300 hover:bg-white hover:shadow-lg hover:-translate-y-0.5"
+                      >
+                        {/* Left edge team color indicator */}
+                        <div
+                          className="absolute left-0 top-0 bottom-0 w-1 rounded-l-xl"
+                          style={{ backgroundColor: teamColor }}
+                        />
+
+                        <div className="flex items-center gap-3">
+                          <span className="font-mono text-xs text-silver tabular-nums w-4">
+                            {idx + 1}
+                          </span>
+                          <div>
+                            <p className="font-display font-bold text-base uppercase leading-none text-black tracking-wide group-hover/row:text-accent transition-colors">
+                              {item.driver.givenName.charAt(0)}. {item.driver.familyName}
+                            </p>
+                            <p className="font-mono text-[0.55rem] uppercase text-silver mt-1">
+                              {teamName || 'Independent'}
+                            </p>
+                          </div>
                         </div>
+                        <span className="font-mono text-sm font-bold tabular-nums text-black">
+                          {item.points} <span className="text-[0.6rem] text-silver font-normal">PTS</span>
+                        </span>
                       </div>
-                      <span className="font-mono text-sm font-semibold tabular-nums">
-                        {item.points} <span className="text-[0.6rem] text-silver">PTS</span>
-                      </span>
-                    </div>
-                  ))
+                    );
+                  })
                 ) : (
                   <p className="font-mono text-xs text-silver">Loading standings...</p>
                 )}
@@ -154,26 +230,42 @@ export function CurrentEra() {
 
             {/* Constructors Standings */}
             <div>
-              <span className="font-mono text-[0.6rem] uppercase tracking-[0.25em] text-black font-bold">
-                CONSTRUCTORS
-              </span>
-              <div className="mt-4 flex flex-col gap-4">
+              <div className="flex items-center justify-between mb-4">
+                <span className="font-mono text-[0.6rem] uppercase tracking-[0.25em] text-black font-bold">
+                  CONSTRUCTORS
+                </span>
+                <span className="font-mono text-[0.55rem] text-silver uppercase">TOP 3</span>
+              </div>
+              <div className="flex flex-col gap-3">
                 {topConstructors.length > 0 ? (
-                  topConstructors.map((item, idx) => (
-                    <div key={item.constructor.id} className="flex justify-between items-end border-b border-steel/10 pb-2">
-                      <div className="flex items-center gap-3">
-                        <span className="font-mono text-xs text-silver tabular-nums w-4">
-                          {idx + 1}
+                  topConstructors.map((item, idx) => {
+                    const teamName = item.constructor.name;
+                    const teamColor = getTeamColor(teamName);
+                    return (
+                      <div
+                        key={item.constructor.id}
+                        className="group/row relative flex justify-between items-center bg-white/40 border border-steel/10 rounded-xl pl-4 pr-4 py-3 transition-all duration-300 hover:bg-white hover:shadow-lg hover:-translate-y-0.5"
+                      >
+                        {/* Left edge team color indicator */}
+                        <div
+                          className="absolute left-0 top-0 bottom-0 w-1 rounded-l-xl"
+                          style={{ backgroundColor: teamColor }}
+                        />
+
+                        <div className="flex items-center gap-3">
+                          <span className="font-mono text-xs text-silver tabular-nums w-4">
+                            {idx + 1}
+                          </span>
+                          <p className="font-display font-bold text-base uppercase leading-none text-black tracking-wide group-hover/row:text-accent transition-colors">
+                            {teamName}
+                          </p>
+                        </div>
+                        <span className="font-mono text-sm font-bold tabular-nums text-black">
+                          {item.points} <span className="text-[0.6rem] text-silver font-normal">PTS</span>
                         </span>
-                        <p className="font-display font-bold text-lg uppercase leading-none text-black">
-                          {item.constructor.name}
-                        </p>
                       </div>
-                      <span className="font-mono text-sm font-semibold tabular-nums">
-                        {item.points} <span className="text-[0.6rem] text-silver">PTS</span>
-                      </span>
-                    </div>
-                  ))
+                    );
+                  })
                 ) : (
                   <p className="font-mono text-xs text-silver">Loading standings...</p>
                 )}
