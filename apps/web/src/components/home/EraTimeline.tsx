@@ -141,6 +141,7 @@ export function EraTimeline() {
   return (
     <div
       ref={triggerRef}
+      id="eras"
       className="relative min-h-screen w-full bg-off-white transition-colors duration-500 overflow-hidden"
     >
       {/* Horizontal Panels Row */}

@@ -1,35 +1,13 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import Image from 'next/image';
-import dynamic from 'next/dynamic';
 
 if (typeof window !== 'undefined') {
   gsap.registerPlugin(ScrollTrigger);
 }
-
-// Dynamically load the client-only 3D car scene
-const ThreeCarScene = dynamic(() => import('./ThreeCarScene'), {
-  ssr: false,
-  loading: () => (
-    <div className="w-full h-full min-h-[220px] flex items-center justify-center bg-[#0a0a0b] border border-white/5 rounded-xl shadow-2xl">
-      <div className="font-mono text-[0.65rem] text-accent tracking-[0.25em] animate-pulse uppercase">
-        INITIALIZING GRAPHICS DEVICE...
-      </div>
-    </div>
-  ),
-});
-
-const VALUE_RANGES: Record<string, [number, number]> = {
-  'front-wing': [1800, 2200],
-  'venturi-tunnels': [-45, -35],
-  'rear-wing': [0.120, 0.450],
-  'sidepod-intake': [180, 220],
-  'airbox': [3.80, 4.20],
-  'mgu-k': [40, 95],
-};
 
 export function HistoryTransition() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -42,40 +20,6 @@ export function HistoryTransition() {
   const curtain1Ref = useRef<HTMLDivElement>(null);
   const curtain2Ref = useRef<HTMLDivElement>(null);
   const curtain3Ref = useRef<HTMLDivElement>(null);
-
-  const [hoveredGroup, setHoveredGroup] = useState<'aero' | 'engine' | null>(null);
-
-
-
-  // Simulated Telemetry Jitter
-  const [telemetry, setTelemetry] = useState<Record<string, number>>({
-    'front-wing': 1980,
-    'venturi-tunnels': -40,
-    'rear-wing': 0.32,
-    'sidepod-intake': 195,
-    'airbox': 4.0,
-    'mgu-k': 75.5,
-  });
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setTelemetry((prev) => {
-        const next = { ...prev };
-        Object.keys(VALUE_RANGES).forEach((id) => {
-          const range = VALUE_RANGES[id];
-          if (!range) return;
-          const current = prev[id] ?? range[0];
-          const delta = (range[1] - range[0]) * 0.08 * (Math.random() - 0.5);
-          let val = current + delta;
-          if (val < range[0]) val = range[0];
-          if (val > range[1]) val = range[1];
-          next[id] = parseFloat(val.toFixed(id === 'rear-wing' || id === 'airbox' ? 3 : 1));
-        });
-        return next;
-      });
-    }, 150);
-    return () => clearInterval(interval);
-  }, []);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -173,12 +117,19 @@ export function HistoryTransition() {
         ref={containerRef}
         className="relative flex h-screen w-full flex-col justify-between px-8 py-4 sm:py-6 md:py-10 text-[#FAF9F6] transition-colors duration-300 md:px-16 overflow-hidden"
       >
-        {/* Fullscreen 3D Car Scene Background */}
+        {/* Fullscreen Static F1 Car Background */}
         <div
           ref={carCanvasRef}
-          className="absolute inset-0 w-full h-full z-0 opacity-0 pointer-events-none"
+          className="absolute inset-0 w-full h-full z-0 opacity-0 pointer-events-none flex items-center justify-center"
         >
-          <ThreeCarScene hoveredGroup={hoveredGroup} telemetry={telemetry} />
+          <div className="relative w-full max-w-5xl aspect-[16/7] px-4">
+            <Image
+              src="/modern_f1_car.png"
+              alt="Modern Formula 1 Car"
+              fill
+              className="object-contain filter drop-shadow-[0_20px_40px_rgba(0,0,0,0.6)]"
+            />
+          </div>
         </div>
 
         {/* Skewed Parallax curtains sweeping across */}
@@ -208,64 +159,6 @@ export function HistoryTransition() {
 
         {/* Centered Transition Content */}
         <div className="z-10 flex flex-1 flex-col items-center justify-center relative w-full max-w-7xl mx-auto">
-          {/* Text 1: Modern Sans-Serif overlay with 3D Car visible behind */}
-          <div
-            ref={textModernRef}
-            className="absolute inset-0 flex flex-col justify-between items-center w-full max-w-7xl mx-auto px-4 py-12 z-20 opacity-0 pointer-events-none"
-          >
-            <div className="text-center mt-4">
-              <span className="font-mono text-[0.6rem] sm:text-xs uppercase tracking-[0.2em] text-accent font-semibold">
-                The Present
-              </span>
-              <h3 className="mt-1 font-display font-black uppercase text-3xl sm:text-5xl md:text-6xl lg:text-7xl tracking-tight leading-none text-current">
-                High-Speed Hybrid Realities
-              </h3>
-              <p className="mt-2 font-sans text-[0.7rem] sm:text-xs md:text-sm text-silver max-w-xl mx-auto leading-relaxed">
-                Every millisecond tracked, every watt calculated. A digital showcase of aerodynamic perfection.
-              </p>
-            </div>
-
-            {/* Middle Spacer to let the 3D car show fullscreen */}
-            <div className="flex-1 min-h-[120px] pointer-events-none" />
-
-            {/* Unified Specs Dashboard Panel */}
-            <div className="w-full max-w-4xl bg-black/85 border border-white/10 rounded-2xl p-6 md:p-8 backdrop-blur-md shadow-2xl pointer-events-auto flex flex-col md:flex-row gap-6 md:gap-10 transition-all duration-300">
-              {/* Aerodynamics Column */}
-              <div
-                onMouseEnter={() => setHoveredGroup('aero')}
-                onMouseLeave={() => setHoveredGroup(null)}
-                className="flex-1 border-t border-white/15 pt-3 text-left transition-all duration-300 hover:border-[#27F4D2] group/spec cursor-pointer"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="font-mono text-[0.65rem] uppercase tracking-[0.25em] font-bold text-zinc-400 group-hover/spec:text-[#27F4D2] transition-colors">
-                    Aerodynamics
-                  </span>
-                  <span className="h-2 w-2 rounded-full bg-[#27F4D2] shadow-[0_0_8px_#27F4D2] animate-pulse" />
-                </div>
-                <p className="mt-2 text-[0.7rem] sm:text-xs text-zinc-300 group-hover/spec:text-white transition-colors leading-relaxed">
-                  Under-car Venturi tunnels create intense low pressure, pulling the chassis flat to the track surface and minimizing turbulent wake for closer wheel-to-wheel racing.
-                </p>
-              </div>
-
-              {/* Power Unit Column */}
-              <div
-                onMouseEnter={() => setHoveredGroup('engine')}
-                onMouseLeave={() => setHoveredGroup(null)}
-                className="flex-1 border-t border-white/15 pt-3 text-left transition-all duration-300 hover:border-[#C9201A] group/spec cursor-pointer"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="font-mono text-[0.65rem] uppercase tracking-[0.25em] font-bold text-zinc-400 group-hover/spec:text-[#C9201A] transition-colors">
-                    Power Unit
-                  </span>
-                  <span className="h-2 w-2 rounded-full bg-[#C9201A] shadow-[0_0_8px_#C9201A] animate-pulse" />
-                </div>
-                <p className="mt-2 text-[0.7rem] sm:text-xs text-zinc-300 group-hover/spec:text-white transition-colors leading-relaxed">
-                  Hyper-efficient hybrid twin-turbochargers pairing thermal energy recovery (MGU-H) and kinetic energy harvesting (MGU-K) systems to deploy over 1000 horsepower.
-                </p>
-              </div>
-            </div>
-          </div>
-
           {/* Text 2: Classic Serif (Fades in on dark background) */}
           <div
             ref={textRetroRef}
@@ -306,6 +199,30 @@ export function HistoryTransition() {
             <span>Palette: Graphite / Monochromatic</span>
             <span>Est. 1950</span>
           </div>
+        </div>
+
+        {/* Modern Layout (Fullscreen overlay) */}
+        <div
+          ref={textModernRef}
+          className="absolute inset-x-0 bottom-0 top-0 flex flex-col justify-between items-center w-full max-w-7xl mx-auto px-8 py-10 md:py-14 z-20 opacity-0 pointer-events-none"
+        >
+          {/* Top Header Statement */}
+          <div className="text-center mt-6 md:mt-8">
+            <span className="font-mono text-[0.6rem] sm:text-xs uppercase tracking-[0.2em] text-accent font-semibold">
+              The Present
+            </span>
+            <h3 className="mt-1 font-display font-black uppercase text-3xl sm:text-5xl md:text-6xl lg:text-7xl tracking-tight leading-none text-current">
+              High-Speed Hybrid Realities
+            </h3>
+            <p className="mt-2 font-sans text-[0.7rem] sm:text-xs md:text-sm text-silver max-w-xl mx-auto leading-relaxed">
+              Every millisecond tracked, every watt calculated. A digital showcase of aerodynamic perfection.
+            </p>
+          </div>
+
+          {/* Middle Spacer to let the 3D car show fullscreen */}
+          <div className="flex-1 min-h-[100px] pointer-events-none" />
+
+
         </div>
         </div>
     </div>

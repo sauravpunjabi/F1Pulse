@@ -32,11 +32,16 @@ import {
   StartLightsLoader,
   Hero,
   CurrentEra,
+  CurrentEraCinematic,
   SpeedSequence,
   HistoryTransition,
   EraTimeline,
   useSyncLiveStatus,
   useTempo,
+  Header,
+  EditorialBriefing,
+  DriverSpotlight,
+  PersistentLane,
 } from '@/components/home';
 
 const MAX_LOADER_MS = 8_000; // ceiling: never trap the user on a short feed
@@ -93,12 +98,16 @@ export default function HomePage() {
 
   return (
     <>
+      <Header />
       <main className="relative">
         <Hero season={season} drivers={drivers} revealed={revealed} tempo={tempo} />
         {revealed && (
           <>
+            <EditorialBriefing season={season} />
             <CurrentEra />
+            <CurrentEraCinematic />
             <SpeedSequence />
+            <DriverSpotlight />
             <HistoryTransition />
             <EraTimeline />
           </>
@@ -113,6 +122,8 @@ export default function HomePage() {
           nextRace={season.data?.nextRace}
         />
       )}
+
+      {revealed && <PersistentLane />}
     </>
   );
 }

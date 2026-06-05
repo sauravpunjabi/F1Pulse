@@ -131,10 +131,14 @@ function Loader() {
 interface ThreeCarSceneProps {
   hoveredGroup: 'aero' | 'engine' | null;
   telemetry: Record<string, number>;
+  scrollProgress?: number;
 }
 
-export default function ThreeCarScene({ hoveredGroup, telemetry }: ThreeCarSceneProps) {
+export default function ThreeCarScene({ hoveredGroup, telemetry, scrollProgress = 0 }: ThreeCarSceneProps) {
   const [hoveredHotspot, setHoveredHotspot] = useState<string | null>(null);
+
+  // Map scroll progress to a 288-degree spin (1.6 * PI) to reveal all angles of the car
+  const rotationY = scrollProgress * Math.PI * 1.6;
 
   return (
     <div className="w-full h-full relative overflow-hidden">
@@ -145,26 +149,23 @@ export default function ThreeCarScene({ hoveredGroup, telemetry }: ThreeCarScene
         gl={{ antialias: true, alpha: true }}
         style={{ width: '100%', height: '100%' }}
       >
-        {/* Cinematic Fog */}
-        <fog attach="fog" args={['#0a0a0b', 8, 18]} />
-
-        {/* Studio Lights */}
-        <ambientLight intensity={0.5} />
+        {/* Studio Lights (Neutral and bright to show natural car colors) */}
+        <ambientLight intensity={1.2} />
         <directionalLight 
-          position={[10, 8, 5]} 
-          intensity={1.8} 
+          position={[10, 10, 5]} 
+          intensity={2.0} 
           castShadow 
           shadow-mapSize={2048}
         />
         <directionalLight 
-          position={[-10, 4, -5]} 
-          intensity={0.8} 
-          color="#E8002D" // Ferrari red ambient bounce fill
+          position={[-10, 6, -5]} 
+          intensity={1.0} 
+          color="#ffffff"
         />
-        <pointLight position={[0, 4, 2]} intensity={1.2} />
+        <pointLight position={[0, 6, 2]} intensity={1.5} />
 
         <Suspense fallback={<Loader />}>
-          <group scale={2.2} position={[0, -0.9, 0]}>
+          <group scale={0.65} position={[0, -0.05, 0]} rotation={[0, rotationY, 0]}>
             <Center position={[0, 0, 0]}>
               <Model />
             </Center>

@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { Saira_Condensed, JetBrains_Mono, Playfair_Display } from 'next/font/google';
 import './globals.css';
+import './broadsheet.css';
 import { Atmosphere } from '@/components/Atmosphere';
 import { GlobalCursor } from '@/components/GlobalCursor';
 import { QueryProvider } from '@/providers/QueryProvider';
@@ -56,6 +57,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       className={`${sairaCond.variable} ${jetbrainsMono.variable} ${playfair.variable}`}
     >
       <body>
+        <div className="grain" />
         <QueryProvider>
           <LenisProvider>
             {children}
