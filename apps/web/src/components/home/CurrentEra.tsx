@@ -116,7 +116,7 @@ export function CurrentEra() {
           </div>
 
           <h3 className="feed__name">{nextRace?.name ?? 'Monaco Grand Prix'}</h3>
-          <p className="feed__sub">{nextRace?.circuit.name ?? 'Circuit de Monaco'} // {location}</p>
+          <p className="feed__sub">{nextRace?.circuit.name ?? 'Circuit de Monaco'} {"//"} {location}</p>
 
           <div className="feed__cd">
             <div className="feed__cell">
