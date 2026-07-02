@@ -37,3 +37,6 @@ coverage/
 
 # Docker volumes (if mounted locally)
 .docker-data/
+
+#Claude
+CLAUDE.md
